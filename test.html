@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <script src="http://cdn.peerjs.com/0.3/peer.min.js"></script>
+  </head>
+  <body>
+    <h1 id='status'>Connection status</h1>
+    <script>
+      var thisPeer = new Peer(Date.now(), {key: 'lwjd5qra8257b9'});
+      console.log('my id is',thisPeer.id);
+
+      function connect(peerId) {
+        return thisPeer.connect(peerId);
+      };
+
+      function send(conn, message) {
+        conn.send(message);
+      };
+
+      thisPeer.on('connection', function(conn) {
+        console.log('connection from', conn);
+        conn.on('open', function() {
+          console.log('connection open');
+
+          // Receive messages
+          conn.on('data', function(data) {
+            console.log('Received', data, 'from', conn);
+            document.getElementById('status').textContent = data;
+          });
+        });
+      });
+
+    </script>
+  </body>
+</html>
