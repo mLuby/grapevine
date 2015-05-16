@@ -12,7 +12,7 @@ function timeInSeconds() {
   return startTime%100;
 }
 
-var thisPeer = new Peer(timeInSeconds(), {host: 'localhost', port: 9000, path: '/'});
+var thisPeer = new Peer(timeInSeconds(), {host: 'localhost', port: 3000, path: '/api'});
 console.log('my id is',thisPeer.id);
 document.getElementById('id').textContent = "id: "+thisPeer.id;
 
@@ -25,7 +25,7 @@ var interval;
     var testId = String(timeInSeconds());
     console.log('trying',testId);
     connect(testId);
-  }, 10);
+  }, 100);
 })();
 function stop() {
   window.clearInterval(interval);
@@ -44,14 +44,16 @@ thisPeer.on('connection', function(peer) {
 function handleOpenConnection(peer){
   // connection open
   peer.on('open', function(){
-    peers.push(peer);
-    console.log('connection opened with', peer.peer);
+    if(!~peers.map(function(p){ return p.peer }).indexOf(peer.peer)){
+      peers.push(peer);
+      console.log('connection opened with', peer.peer);
 
-    // message received
-    peer.on('data', function(update) {
-      console.log('data from', peer, 'sent', update);
-      updateElementByClass(update.class, update.content);
-    });
+      // message received
+      peer.on('data', function(update) {
+        console.log('data from', peer, 'sent', update);
+        updateElementByClass(update.class, update.content);
+      });
+    }
   });
 }
 
