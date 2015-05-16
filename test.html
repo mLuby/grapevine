@@ -7,12 +7,24 @@
   <body>
     <h1 id='status'>Connection status</h1>
     <script>
-      var thisPeer = new Peer(Date.now(), {key: 'lwjd5qra8257b9'});
+      var thisPeer = new Peer(timeInSeconds(), {key: 'lwjd5qra8257b9'});
       console.log('my id is',thisPeer.id);
 
-      function connect(peerId) {
-        return thisPeer.connect(peerId);
-      };
+      var peers = [];
+
+      // attempt connection every second
+      setTimeout(function(){
+        pushToPeers();
+      }, 1000);
+
+      function pushToPeers() {
+        var testId = String(timeInSeconds() - 1);
+        var connection = thisPeer.connect(testId);
+        if(connection && testId !== thisPeer.id){
+          peers.push(connection);
+          console.log('added',testId,'to peers',typeof testId,typeof thisPeer.id);
+        }
+      }
 
       function send(conn, message) {
         conn.send(message);
@@ -31,6 +43,9 @@
         });
       });
 
+      function timeInSeconds() {
+        return Math.round((new Date()).getTime()/10000);
+      }
     </script>
   </body>
 </html>
