@@ -32,7 +32,6 @@
     <h1>Peer</h1>
     <button ng-click="ctrl.doSomething()">?</button>
     <h2>ID: {{ctrl.gv.id}}</h2>
-    <!-- <h2>Server status: <span  ng-class="{connected: ctrl.server.status === 'connected', disconnected: ctrl.server.status === 'disconnected'}">{{ctrl.server.status}}</span></h2> -->
     <table>
       <caption>Peers</caption>
       <tr>
@@ -48,17 +47,21 @@
         <td><button ng-click="ctrl.gv.connect(ctrl.peerID)">connect to peer</button></td>
       </tr>
     </table>
-<!--     <table class="channels">
+    <table>
       <caption>Updates</caption>
       <tr>
+        <th>timestamp</th>
+        <th>source peer</th>
         <th>value</th>
       </tr>
-      <tr ng-repeat="update in ctrl.updates | reverse">
+      <tr ng-repeat="update in ctrl.gv.updates | orderBy:'-timestamp'">
+        <td class="value">{{update.timestamp}}</td>
+        <td class="value">{{update.peer}}</td>
         <td class="value">{{update.value}}</td>
       </tr>
       <tr>
-        <td><input type="text" ng-model="ctrl.update"><button ng-click="ctrl.sendUpdate(ctrl.update)">send update</button></td>
+        <td><input type="text" ng-model="ctrl.updateValue"><button ng-click="ctrl.gv.update(ctrl.updateValue)">send update</button></td>
       </tr>
-    </table> -->
+    </table>
   </body>
 </html>

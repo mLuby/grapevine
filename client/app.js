@@ -6,51 +6,37 @@ function ctrl(Grapevine, $scope){
   this.gv = Grapevine;
 };
 
-// ctrl.prototype.connect = function(peerID) {
-//   console.log(this.peerID);
-//   this.connect(this.peerID);
-//   this.peerID = '';
-// };
-
-// ctrl.prototype.doSomething = function() {
-//   console.log(this.peers);
-// };
-
-// app.filter('reverse', function() {
-//   return function(items) {
-//     return items && items.length ? items.slice().reverse() : [];
-//   };
-// });
-// ctrl.prototype.sendUpdate = function(value) {
-//   this.updates.push({value: value});
-//   this.update = '';
-// };
-
-
 app.service('Grapevine', ['$rootScope', function Grapevine($rootScope){
   var context = this;
   context.data = {
     id: '',
-    // server: {status:'??'},
-    // updates: [],
+    peers: [],
     connect: connect,
-    peers: []
+    updates: [],
+    update: update
   };
 
   // init
   var startTime = (new Date()).getTime()%1000000;
   context.data.id = startTime;
   var self = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});
-  console.log('self',self);
 
   function connect(peerId){
     var connection = self.connect(peerId);
     handleOpenConnection(connection);
   }
 
+  function update(value){
+    console.log('sending value', value);
+    context.data.peers.forEach(function(peer){
+      peer.connection.send(value);
+    });
+    context.data.updates.push({timestamp:Date.now(), peer:context.data.id, value:value});
+  }
+
   // connection attempt
   self.on('connection', function(connection) {
-    console.log('on cxn', connection.peer);
+    console.log('connection from', connection.peer);
     handleOpenConnection(connection);
   });
 
@@ -58,13 +44,13 @@ app.service('Grapevine', ['$rootScope', function Grapevine($rootScope){
     // connection open
     connection.on('open', function(){
       console.log('opened', connection.peer);
-      context.data.peers.push({id:connection.peer, status:'connected'});
+      context.data.peers.push({id:connection.peer, connection:connection, status:'connected'});
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     });
 
-    connection.on('data', function(update) {
-      console.log('data from', connection.peer, 'sent', update);
-      context.data.updates.push({peer:connection.peer, value:update, time:Date.now()});
+    connection.on('data', function(value) {
+      console.log('data from', connection.peer, 'sent', value);
+      context.data.updates.push({timestamp:Date.now(), peer:connection.peer, value:value});
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     });
 
