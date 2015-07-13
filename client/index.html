@@ -1,16 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html ng-app='grapevine'>
   <head>
-    <title></title>
-    <script src="http://cdn.peerjs.com/0.3/peer.min.js"></script>
+    <title>Grapevine</title>
+    <script src="angular.min.js"></script>
+    <script src="app.js"></script>
+    <script src="peer.min.js"></script>
+    <!-- <script src="grapevine.js"></script> -->
+    <style type="text/css">
+      table{
+        border: thin solid red;
+        /*border-collapse: collapse;*/
+      }
+      th{
+        background-color: white;
+      }
+      tr{
+        background-color: #DDD;
+      }
+      .connected{
+        background-color: green; 
+      }
+      .disconnected{
+        background-color: yellow;
+      }
+      .closed{
+        background-color: red;
+      }
+    </style>
   </head>
-  <body>
-    <h1 id="id">id: ?</h1>
-    <ul id="peers">Peers:</ul>
-
-    <h2 class="grapevine-money">$350</h2>
-    <h3 class="grapevine-visits">53 visits</h3>
-
-    <script src="grapevine.js"></script>
+  <body ng-view ng-controller="grapevineController as ctrl">
+    <h1>Peer</h1>
+    <button ng-click="ctrl.doSomething()">?</button>
+    <h2>ID: {{ctrl.gv.id}}</h2>
+    <!-- <h2>Server status: <span  ng-class="{connected: ctrl.server.status === 'connected', disconnected: ctrl.server.status === 'disconnected'}">{{ctrl.server.status}}</span></h2> -->
+    <table>
+      <caption>Peers</caption>
+      <tr>
+        <th>id</th>
+        <th>status</th>
+      </tr>
+      <tr ng-repeat="peer in ctrl.gv.peers">
+        <td class="id">{{peer.id}}</td>
+        <td class="status" ng-class="{connected:peer.status==='connected', disconnected:peer.status==='disconnected', closed:peer.status==='closed'}">{{peer.status}}</td>
+      </tr>
+      <tr>
+        <td><input type="text" ng-model="ctrl.peerID"></td>
+        <td><button ng-click="ctrl.gv.connect(ctrl.peerID)">connect to peer</button></td>
+      </tr>
+    </table>
+<!--     <table class="channels">
+      <caption>Updates</caption>
+      <tr>
+        <th>value</th>
+      </tr>
+      <tr ng-repeat="update in ctrl.updates | reverse">
+        <td class="value">{{update.value}}</td>
+      </tr>
+      <tr>
+        <td><input type="text" ng-model="ctrl.update"><button ng-click="ctrl.sendUpdate(ctrl.update)">send update</button></td>
+      </tr>
+    </table> -->
   </body>
 </html>
