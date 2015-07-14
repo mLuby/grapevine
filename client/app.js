@@ -19,7 +19,7 @@ app.service('Grapevine', ['$rootScope', function Grapevine($rootScope){
   // init
   var startTime = (new Date()).getTime()%1000000;
   context.data.id = startTime;
-  var self = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});
+  var self = new Peer(context.data.id, {host: 'http://iggrtc.azurewebsites.net', port: 80, path: '/api'});
 
   function connect(peerId){
     var connection = self.connect(peerId);

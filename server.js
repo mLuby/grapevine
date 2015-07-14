@@ -4,6 +4,8 @@ var ExpressPeerServer = require('peer').ExpressPeerServer;
 var port = process.env.PORT || 3000;
 var host = process.env.HOST || '0.0.0.0';
 
+console.log('host',host,'port',port);
+
 var server = app.listen(port);
 
 var options = {
