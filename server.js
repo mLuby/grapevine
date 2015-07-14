@@ -19,4 +19,5 @@ var peers = [];
 server.on('connection', function(peer) {
   // console.log(peer.id,'connection from id',peer.peer);
   // peers.push(id);
+  console.log('a peer connected');
 });

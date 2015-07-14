@@ -19,7 +19,14 @@ app.service('Grapevine', ['$rootScope', function Grapevine($rootScope){
   // init
   var startTime = (new Date()).getTime()%1000000;
   context.data.id = startTime;
-  var self = new Peer(context.data.id, {host: 'http://iggrtc.azurewebsites.net', port: 80, path: '/api'});
+  // var self = new Peer(context.data.id, {host: 'iggrtc.azurewebsites.net', path: '/api'}); // port: 3000
+  var self = new Peer(context.data.id, {key: 'lwjd5qra8257b9'});
+  console.log('self', self);
+  // connection attempt
+  self.on('connection', function(connection) {
+    console.log('connection from', connection.peer);
+    handleOpenConnection(connection);
+  });
 
   function connect(peerId){
     var connection = self.connect(peerId);
@@ -33,12 +40,6 @@ app.service('Grapevine', ['$rootScope', function Grapevine($rootScope){
     });
     context.data.updates.push({timestamp:Date.now(), peer:context.data.id, value:value});
   }
-
-  // connection attempt
-  self.on('connection', function(connection) {
-    console.log('connection from', connection.peer);
-    handleOpenConnection(connection);
-  });
 
   function handleOpenConnection(connection){
     // connection open
