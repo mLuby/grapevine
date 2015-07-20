@@ -1,27 +1,22 @@
 var express = require('express');
 var app = express();
-var ExpressPeerServer = require('peer').ExpressPeerServer;
-var port = process.env.PORT || 3000;
-var host = process.env.HOST || '0.0.0.0';
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
 
-console.log('host',host,'port',port);
+var p2p = require('socket.io-p2p-server').Server;
+io.use(p2p);
 
-var server = app.listen(port);
+server.listen(3000);
 
-var options = {
-//   debug: true
-};
+app.use(express.static(__dirname + '/client'));
 
-app.use('/api', ExpressPeerServer(server, options));
-app.use(express.static('client'));
+// app.get('/', function (req, res) {
+//   res.sendfile(__dirname + '/client');
+// });
 
-var peers = [];
-server.on('connection', function(id) {
-  // console.log('connection from id',id);
-  // peers.push(id);
-});
-
-server.on('disconnect', function(id) { 
-  // console.log('disconnect from id',id);
-  // peers.splice(peers.indexOf(id), 1);
+io.on('connection', function (socket) {
+  socket.emit('news', { hello: 'world' });
+  socket.on('my other event', function (data) {
+    console.log(data);
+  });
 });

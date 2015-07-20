@@ -1,75 +1,42 @@
-<!DOCTYPE html>
-<html ng-app='grapevine'>
-  <head>
-    <title>Grapevine</title>
-    <script src="angular.min.js"></script>
-    <script src="app.js"></script>
-    <script src="peer.min.js"></script>
-    <!-- <script src="http://cdn.peerjs.com/0.3/peer.js"></script> -->
-    <style type="text/css">
-      table{
-        border: thin solid red;
-      }
-      th{
-        background-color: white;
-      }
-      tr{
-        background-color: #DDD;
-      }
-      .connected{
-        background-color: green; 
-      }
-      .disconnected{
-        background-color: yellow;
-      }
-      .closed{
-        background-color: red;
-      }
-    </style>
-  </head>
-  <body ng-view ng-controller="grapevineController as ctrl">
-    <h1>Peer ID: {{ctrl.gv.id}}</h1>
-    <button ng-click="ctrl.gv.peerDisconnect()">peerDisconnect</button>
-    <button ng-click="ctrl.gv.peerReconnect()">peerReconnect</button>
-    <button ng-click="ctrl.gv.peerDestroy()">peerDestroy</button>
-    <table>
-      <caption>Peers</caption>
-      <tr>
-        <th>id</th>
-        <th>status</th>
-        <th>actions</th>
-      </tr>
-      <tr ng-repeat="peer in ctrl.gv.peers">
-        <td class="id">{{peer.id}}</td>
-        <td class="status" ng-class="{connected:peer.status==='connected', disconnected:peer.status==='disconnected', closed:peer.status==='closed'}">{{peer.status}}</td>
-        <td>
-          <button ng-click="ctrl.gv.connection(peer.id)">close</button>
-          <input type="text" ng-model="ctrl.dataToOne" /><button ng-click="ctrl.gv.connectionSend(peer.id, ctrl.dataToOne)">send</button>
-          <button ng-click="ctrl.gv.connectionClose(peer.id)"></button>
-        </td>
-      </tr>
-      <tr>
-        <td><input type="text" ng-model="ctrl.peerID"></td>
-        <td>
-          <button ng-click="ctrl.gv.connect(ctrl.peerID)">connect to peer</button>
-        </td>
-      </tr>
-    </table>
-    <table>
-      <caption>Updates</caption>
-      <tr>
-        <th>timestamp</th>
-        <th>source peer</th>
-        <th>data</th>
-      </tr>
-      <tr ng-repeat="update in ctrl.gv.updates | orderBy:'-timestamp'">
-        <td class="value">{{update.timestamp}}</td>
-        <td class="value">{{update.peer}}</td>
-        <td class="value">{{update.data}}</td>
-      </tr>
-      <tr>
-        <td><input type="text" ng-model="ctrl.dataToAll"><button ng-click="ctrl.gv.connectionsBroadcast(ctrl.dataToAll)">send update</button></td>
-      </tr>
-    </table>
-  </body>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Socket.io-p2p Example</title>
+</head>
+<body>
+  <h1>Socket.io-p2p Example</h1>
+  <p><i>Send messages over socket.io and hit `Go Private` to set all WebRTC enabled clients to enter a private conversation.</i></p>
+
+  <ul id="messages"></ul>
+  <form action="#" id="msg-form">
+    <label>Enter message</label>
+    <input type="text" name="lname" id="msg-box" size="40">
+    <input type="submit" value="Submit">
+  </form>
+  <br />
+  <button id="private" disabled="true">Go private</button>
+  <span style="color: red;" id="upgrade-msg"></span>
+  <h2>Messages</h2>
+  <ul id="msg-list"></ul>
+  <style>
+    h2 {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin-top: 5px;
+    }
+    li {
+      padding: 5px 0;
+      border-top: 1px dashed #CCC;
+    }
+  </style>
+  <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
+  <script src="adapter.js"></script>
+  <script src="bundle.js"></script>
+  <!-- <script src="index.js"></script> -->
+</body>
 </html>
