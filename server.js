@@ -16,8 +16,12 @@ app.use('/api', ExpressPeerServer(server, options));
 app.use(express.static('client'));
 
 var peers = [];
-server.on('connection', function(peer) {
-  // console.log(peer.id,'connection from id',peer.peer);
+server.on('connection', function(id) {
+  // console.log('connection from id',id);
   // peers.push(id);
-  console.log('a peer connected');
+});
+
+server.on('disconnect', function(id) { 
+  // console.log('disconnect from id',id);
+  // peers.splice(peers.indexOf(id), 1);
 });
