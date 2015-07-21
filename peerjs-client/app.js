@@ -12,22 +12,18 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     id: '',
     parents: [],
     children: [],
-    updates: [],
-    connectionSend: sendToConnection,
-    connectionsBroadcast: sendToAllConnections,
-    connectionClose: closeConnection
+    messages: [],
+    sendToAllConnections: sendToAllConnections,
   };
 
   // init
   var startTime = (new Date()).getTime()%1000000;
   context.data.id = startTime;
-  // var peer = new Peer(context.data.id, {host: 'iggrtc.azurewebsites.net', path: '/api'}); // port: 3000
-  context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});//{key: 'lwjd5qra8257b9'});
-  // var peer = new Peer(context.data.id, {key: 'lwjd5qra8257b9'});
+  context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/webrtc'});
   
   // peer (self) functionality
   context.data.peer.on('connection', function(dataConnection) {
-    console.log('peer dataConnection from'+dataConnection.peer);
+    console.log('peer dataConnection from', dataConnection.peer);
     handleOpenConnection(dataConnection, {isChild: false});
   });
 
@@ -43,53 +39,34 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   });
 
   context.data.peer.on('close', function() {
-  
+    // TODO
     console.log('peer close');
   });
 
   context.data.peer.on('disconnected', function() {
     console.log('peer disconnected');
-    // context.data.id += 1;
-    console.log('reconnecting with id', context.data.id);
-    context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});//{key: 'lwjd5qra8257b9'});
-    $rootScope.$digest();
+    // console.log('reconnecting with id', context.data.id);
+    // context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});//{key: 'lwjd5qra8257b9'});
+    // $rootScope.$digest();
   });
 
   context.data.peer.on('error', function(err) {
-    
-    console.log('peer error',err);
+
+    console.warn('peer error',err);
   });
-
-  context.data.peerDisconnect = context.data.peer.disconnect;
-  context.data.peerReconnect = context.data.peer.reconnect;
-  context.data.peerDestroy = context.data.peer.destroy;    
-
-  function updatePeerValues(){
-    context.data.peer_id = context.data.peer.id 
-    context.data.peer_connections = context.data.peer.connections 
-    context.data.peer_disconnected = context.data.peer.disconnected 
-    context.data.peer_destroyed = context.data.peer.destroyed 
-  }
 
   function handleOpenConnection(dataConnection, options){
     dataConnection.on('open', function() { 
-      console.log(dataConnection.peer, dataConnection.open, 'dataConnection open');
+      console.log('dataConnection open', dataConnection.peer, dataConnection.open);
       var parentsOrChildren = options.isChild ? context.data.children : context.data.parents; 
       parentsOrChildren.push({id:dataConnection.peer, dataConnection:dataConnection, status:'connected'});
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     });
 
-    dataConnection.on('data', function(data) {
-      console.log(dataConnection.peer, dataConnection.open, 'dataConnection data', data);
-
-      console.log('data from', dataConnection.peer, 'sent', data);
-      context.data.updates.push({timestamp:Date.now(), peer:dataConnection.peer, data:data});
-      $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
-    });
+    dataConnection.on('data', processMessage);
 
     dataConnection.on('close', function() { 
-      console.log(dataConnection.peer, dataConnection.open, 'dataConnection close');
-
+      console.log('dataConnection close', dataConnection.peer, dataConnection.open);
       findPeerByID(dataConnection.peer).status = 'closed';
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     });
@@ -100,21 +77,6 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     });
   }
 
-  function sendToConnection(peerId, data){
-    console.log('sending',data,'to',peerId);
-    findPeerByID(peerId).dataConnection.send(data);
-    console.log('sent',data,'to',peerId);
-  }
-
-  function sendToAllConnections(data){
-    console.log('sending',data,'to all connections');
-    context.data.peers.forEach(function(peer){
-      sendToConnection(peer.id, data);
-    });
-    context.data.updates.push({timestamp:Date.now(), peer:context.data.id, data:data});
-    console.log('sent',data,'to all connections');
-  }
-
   function closeConnection(peerId){
     console.log('closing',peerId);
     findPeerByID(peerId).dataConnection.close();
@@ -123,8 +85,46 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   }
 
   function findPeerByID(id){
+    var parentsIndex = context.data.parents.map(function(peer){ return peer.id; }).indexOf(id);
+    var childrenIndex = context.data.children.map(function(peer){ return peer.id; }).indexOf(id);
+    if(parentsIndex !== -1){
+      return context.data.parents[parentsIndex];
+    } else {
+      return context.data.children[childrenIndex];
+    }
+  }
 
-    return context.data.peers[context.data.peers.map(function(peer){ return peer.id; }).indexOf(id)];
+  function processMessage(message){
+    if(!alreadyReceived(message) && verifiedFromServer(message)){
+      context.data.messages.push(message);
+      sendToAllConnections(message);
+      $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
+    }
+    function alreadyReceived(message){
+      var messageIndex = context.data.messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
+      if(messageIndex !== -1){
+        return true;
+      } else {
+        return false;
+      }
+    }
+    function verifiedFromServer(message){
+      // TODO
+      return true;
+    }
+  }
+
+  function sendToAllConnections(message){
+    console.log('sending',message,'to all connections');
+    message.timestamp = message.timestamp || (new Date()).getTime()
+    context.data.children.forEach(function(child){
+      sendToConnection(child.id, message);
+    });
+  }
+
+  function sendToConnection(peerId, data){
+    console.log('sending',data,'to',peerId);
+    findPeerByID(peerId).dataConnection.send(data);
   }
 
   return context.data;

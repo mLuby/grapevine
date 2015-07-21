@@ -66,19 +66,19 @@
       </tr>
     </table>
     <table>
-      <caption>Updates</caption>
+      <caption>Messages</caption>
       <tr>
         <th>timestamp</th>
         <th>source peer</th>
         <th>data</th>
       </tr>
-      <tr ng-repeat="update in ctrl.gv.updates | orderBy:'-timestamp'">
-        <td class="value">{{update.timestamp}}</td>
-        <td class="value">{{update.peer}}</td>
-        <td class="value">{{update.data}}</td>
+      <tr ng-repeat="message in ctrl.gv.messages | orderBy:'-timestamp'">
+        <td class="value">{{message.timestamp}}</td>
+        <td class="value">{{message.peer}}</td>
+        <td class="value">{{message.data}}</td>
       </tr>
       <tr>
-        <td><input type="text" ng-model="ctrl.dataToAll"><button ng-click="ctrl.gv.connectionsBroadcast(ctrl.dataToAll)">send update</button></td>
+        <td><input type="text" ng-model="ctrl.dataToAll"><button ng-click="ctrl.gv.sendToAllConnections({timestamp:null, peer:ctrl.gv.id, data:ctrl.dataToAll})">send message</button></td>
       </tr>
     </table>
   </body>
