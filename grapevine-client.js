@@ -1,38 +1,46 @@
+// TODO reconnect to server on orphan
+
 var children = {};
 var parents = {};
 var serverPublicKey = '138g9u2oy4ghlk';
 
-function connectToChild(childPeerId){
-  children[childPeer.id] = Peer.connect(childPeerId);
-}
-
-p.on('server-connect', function(peerIds){
+something.on('connection-from-server', function(peerIds){
   // first connection to grapevine server
   peerIds.forEach(connectToChild);
 });
+function connectToChild(childPeerId){
+  var childPeer = Peer.connect(childPeerId);
+  children[childPeer.id] = childPeer;
+}
 
-p.on('parent-connect', parentPeer){
+something.on('message-from-server', handleMessage);
+something.on('message-from-peer', handleMessage);
+function handleMessage(message){
+  var verified = verifyMessage(message)
+  if(verified){
+    // pass message on to children;
+    children.forEach(function(childPeer){
+      childPeer.send(message);
+    });
+    // updateUiTotal(message);
+    console.log('UPDATE UI', message);
+  }
+}
+
+something.on('connection-from-peer', parentPeer){
+  // Incoming connections are ALWAYS from parents.
   parents[parentPeer.id] = parentPeer;
 }
 
-p.on('message', function(message){
-  var verified = verifyMessage(message)
-  if(verified){
-    sendToChildren(message);
-    actOnMessage(message); // make sure server sent it  
-  }
-});
-
-p.on('close', function(peerId){
+something.on('peer-disconnect', function(peerId){ // or close
   if(children[peerId]){
+    console.log('child',peerId,'disconnected');
     delete children[peerId];
-  } else if(parents [peerId]){
+  } else if(parents[peerId]){
+    console.log('parent',peerId,'disconnected');
     delete parents[peerId];
   } else {
-    console.log('error peerId',peerId,'not a peer');
+    console.error('Peer id',peerId,'disconnected but was not a peer.');
   }
 }
 
-function actOnMessage(message){
-  updateUiTotal(message.total);
-}

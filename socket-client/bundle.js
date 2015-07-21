@@ -1,307 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var Socketiop2p = require('./socketio-p2p-client.js');
-// var io = require('socket.io-client');
-
-function init () {
-
-  var socket = io();
-  var opts = {peerOpts: {trickle: false}, autoUpgrade: false};
-  var p2psocket = new Socketiop2p(socket, opts, function () {
-    privateButton.disabled = false;
-    p2psocket.emit('peer-obj', 'Hello there. I am ' + p2psocket.peerId);
-  });
-
-  // Elements
-  var privateButton = document.getElementById('private');
-  var form = document.getElementById('msg-form');
-  var box = document.getElementById('msg-box');
-  var msgList = document.getElementById('msg-list');
-  var upgradeMsg = document.getElementById('upgrade-msg');
-
-  p2psocket.on('peer-msg', function(data) {
-    var li = document.createElement("li");
-    li.appendChild(document.createTextNode(data));
-    msgList.appendChild(li);
-  });
-
-  form.addEventListener('submit', function(e, d) {
-    e.preventDefault();
-    var li = document.createElement("li");
-    li.appendChild(document.createTextNode(box.value));
-    msgList.appendChild(li);
-    p2psocket.emit('peer-msg', box.value)
-    box.value = '';
-  });
-
-  privateButton.addEventListener('click', function(e) {
-    goPrivate();
-    p2psocket.emit('go-private', true)
-  })
-
-  p2psocket.on('go-private', function () {
-    goPrivate();
-  });
-
-  function goPrivate () {
-    p2psocket.useSockets = false;
-    upgradeMsg.innerHTML = "WebRTC connection established!";
-    privateButton.disabled = true;
-  }
-
-}
-
-document.addEventListener('DOMContentLoaded', init, false)
-},{"./socketio-p2p-client.js":2}],2:[function(require,module,exports){
-window.myDebug = require('debug')
-var Peer = require('simple-peer')
-var Emitter = require('component-emitter')
-var parser = require('socket.io-parser')
-var toArray = require('to-array')
-var hasBin = require('has-binary')
-var bind = require('component-bind')
-var debug = require('debug')('socket')
-var hat = require('hat')
-var extend = require('extend.js')
-var rtcSupport = require('webrtcsupport')
-
-var emitfn = Emitter.prototype.emit
-
-function Socketiop2p (socket, opts, cb) {
-  var self = this
-  self.useSockets = true
-  self.usePeerConnection = false
-  self.decoder = new parser.Decoder(this)
-  self.decoder.on('decoded', bind(this, this.ondecoded))
-  self.socket = socket
-  self.cb = cb
-  self._peers = {}
-  self.readyPeers = 0
-  self.ready = false
-  self._peerEvents = {
-                   upgrade: 1,
-                   error: 1,
-                   peer_signal: 1,
-                   peer_ready: 1
-                 }
-  var defaultOpts = {
-    autoUpgrade: true,
-    numClients: 5
-  }
-  self.opts = extend(defaultOpts, (opts || {}))
-  self.peerOpts = self.opts.peerOpts || {}
-  self.numConnectedClients
-
-  socket.on('numClients', function (numClients) {
-    self.peerId = socket.io.engine.id
-    self.numConnectedClients = numClients
-    if (rtcSupport.supportDataChannel) {
-      generateOffers(function (offers) {
-        var offerObj = {
-          offers: offers,
-          fromPeerId: self.peerId
-        }
-        socket.emit('offers', offerObj)
-      })
-    }
-
-    function generateOffers (cb) {
-      var offers = []
-      for (var i = 0; i < self.opts.numClients; ++i) {
-        generateOffer()
-      }
-      function generateOffer () {
-        var offerId = hat(160)
-        var peerOpts = extend(self.peerOpts, {initiator: true})
-        var peer = self._peers[offerId] = new Peer(peerOpts)
-        peer.setMaxListeners(50)
-        self.setupPeerEvents(peer)
-        peer.on('signal', function (offer) {
-          offers.push({
-            offer: offer,
-            offerId: offerId
-          })
-          checkDone()
-        })
-
-        peer.on('error', function (err) {
-          emitfn.call(this, 'peer-error', err)
-          debug('Error in peer %s', err)
-        })
-      }
-
-      function checkDone () {
-        if (offers.length === self.opts.numClients) {
-          debug('generated %s offers', self.opts.numClients)
-          cb(offers)
-        }
-      }
-    }
-  })
-
-  socket.on('offer', function (data) {
-    var peerOpts = extend(self.peerOpts, {initiator: false})
-    var peer = self._peers[data.fromPeerId] = new Peer(peerOpts)
-    self.numConnectedClients++
-    peer.setMaxListeners(50)
-    self.setupPeerEvents(peer)
-    peer.on('signal', function (signalData) {
-      var signalObj = {
-        signal: signalData,
-        offerId: data.offerId,
-        fromPeerId: self.peerId,
-        toPeerId: data.fromPeerId
-      }
-      socket.emit('peer-signal', signalObj)
-    })
-
-    peer.on('error', function (err) {
-      emitfn.call(this, 'peer-error', err)
-      debug('Error in peer %s', err)
-    })
-    peer.signal(data.offer)
-  })
-
-  socket.on('peer-signal', function (data) {
-    // Select peer from offerId if exists
-    var peer = self._peers[data.offerId] || self._peers[data.fromPeerId]
-
-    peer.on('signal', function signal (signalData) {
-      var signalObj = {
-        signal: signalData,
-        offerId: data.offerId,
-        fromPeerId: self.peerId,
-        toPeerId: data.fromPeerId
-      }
-      socket.emit('peer-signal', signalObj)
-    })
-
-    peer.signal(data.signal)
-  })
-
-  self.on('peer_ready', function (peer) {
-    self.readyPeers++
-    if (self.readyPeers >= self.numConnectedClients && !self.ready) {
-      self.ready = true
-      if (self.opts.autoUpgrade) self.usePeerConnection = true
-      if (typeof self.cb === 'function') self.cb()
-      self.emit('upgrade')
-    }
-  })
-
-}
-
-Emitter(Socketiop2p.prototype)
-
-Socketiop2p.prototype.setupPeerEvents = function (peer) {
-  var self = this
-
-  peer.on('connect', function (peer) {
-    self.emit('peer_ready', peer)
-  })
-
-  peer.on('data', function (data) {
-    if (this.destroyed) return
-    self.decoder.add(data)
-  })
-}
-
-/**
- * Overwride the inheritted 'on' method to add a listener to the socket instance
- * that emits the event on the Socketio event loop
-**/
-
-Socketiop2p.prototype.on = function (type, listener) {
-  var self = this
-  this.socket.addEventListener(type, function (data) {
-    emitfn.call(self, type, data)
-  })
-  this.addEventListener(type, listener)
-}
-
-Socketiop2p.prototype.emit = function (data, cb) {
-  var self = this
-  var argsObj = cb || {}
-  var encoder = new parser.Encoder()
-
-  if (this._peerEvents.hasOwnProperty(data) || argsObj.fromSocket) {
-    emitfn.apply(this, arguments)
-  } else if (this.usePeerConnection || !this.useSockets) {
-    var args = toArray(arguments)
-    var parserType = parser.EVENT // default
-    if (hasBin(args)) { parserType = parser.BINARY_EVENT } // binary
-    var packet = { type: parserType, data: args}
-
-    encoder.encode(packet, function (encodedPackets) {
-      if (encodedPackets[1] instanceof ArrayBuffer) {
-        self._sendArray(encodedPackets)
-      } else if (encodedPackets) {
-        for (var i = 0; i < encodedPackets.length; i++) {
-          self._send(encodedPackets[i])
-        }
-      } else {
-        throw new Error('Encoding error')
-      }
-    })
-  } else {
-    this.socket.emit(data, cb)
-  }
-}
-
-/**
-* If the second packet is a binary attachment,
-* swap out the attachment number for the number of chunks in the array
-* before sending the new packet and chunks
-**/
-
-Socketiop2p.prototype._sendArray = function (arr) {
-  var firstPacket = arr[0]
-  var interval = 5000
-  var arrLength = arr[1].byteLength
-  var nChunks = Math.ceil(arrLength / interval)
-  var packetData = firstPacket.substr(0, 1) + nChunks + firstPacket.substr(firstPacket.indexOf('-'))
-  this._send(packetData)
-  this.binarySlice(arr[1], interval, this._send)
-}
-
-Socketiop2p.prototype._send = function (data) {
-  var self = this
-  for (var peerId in self._peers) {
-    var peer = self._peers[peerId]
-    if (peer._channelReady) {
-      peer.send(data)
-    }
-  }
-}
-
-Socketiop2p.prototype.binarySlice = function (arr, interval, callback) {
-  for (var start = 0; start < arr.byteLength; start += interval) {
-    var chunk = arr.slice(start, start + interval)
-    callback.call(this, chunk)
-  }
-}
-
-Socketiop2p.prototype.ondecoded = function (packet) {
-  var args = packet.data || []
-  emitfn.apply(this, args)
-}
-
-Socketiop2p.prototype.disconnect = function () {
-  for (var peerId in this._peers) {
-    var peer = this._peers[peerId]
-    peer.destroy()
-    this.socket.disconnect()
-  }
-}
-
-/**
- * Use peerConnection instead of socket.io one.
-**/
-Socketiop2p.prototype.upgrade = function () {
-  this.usePeerConnection = true
-}
-
-module.exports = Socketiop2p
-},{"component-bind":3,"component-emitter":4,"debug":5,"extend.js":8,"has-binary":9,"hat":11,"simple-peer":12,"socket.io-parser":20,"to-array":26,"webrtcsupport":27}],3:[function(require,module,exports){
 /**
  * Slice reference.
  */
@@ -326,7 +23,7 @@ module.exports = function(obj, fn){
   }
 };
 
-},{}],4:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -489,7 +186,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],5:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -659,7 +356,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":6}],6:[function(require,module,exports){
+},{"./debug":4}],4:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -858,7 +555,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":7}],7:[function(require,module,exports){
+},{"ms":5}],5:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -985,7 +682,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],8:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  * Extend an object with another.
  *
@@ -1007,7 +704,7 @@ module.exports = function(src) {
   return src;
 }
 
-},{}],9:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (global){
 
 /*
@@ -1069,12 +766,12 @@ function hasBinary(data) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"isarray":10}],10:[function(require,module,exports){
+},{"isarray":8}],8:[function(require,module,exports){
 module.exports = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
 
-},{}],11:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 var hat = module.exports = function (bits, base) {
     if (!base) base = 16;
     if (bits === undefined) bits = 128;
@@ -1138,7 +835,7 @@ hat.rack = function (bits, base, expandBy) {
     return fn;
 };
 
-},{}],12:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 (function (Buffer){
 /* global Blob */
 
@@ -1667,7 +1364,7 @@ Peer.prototype._debug = function () {
 function noop () {}
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":29,"debug":5,"get-browser-rtc":13,"hat":11,"inherits":14,"is-typedarray":15,"once":17,"stream":50,"typedarray-to-buffer":18}],13:[function(require,module,exports){
+},{"buffer":29,"debug":3,"get-browser-rtc":11,"hat":9,"inherits":12,"is-typedarray":13,"once":15,"stream":50,"typedarray-to-buffer":16}],11:[function(require,module,exports){
 // originally pulled out of simple-peer
 
 module.exports = function getBrowserRTC () {
@@ -1684,7 +1381,7 @@ module.exports = function getBrowserRTC () {
   return wrtc
 }
 
-},{}],14:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -1709,7 +1406,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],15:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports      = isTypedArray
 isTypedArray.strict = isStrictTypedArray
 isTypedArray.loose  = isLooseTypedArray
@@ -1752,7 +1449,7 @@ function isLooseTypedArray(arr) {
   return names[toString.call(arr)]
 }
 
-},{}],16:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // Returns a wrapper function that returns a wrapped callback
 // The wrapper function should do some stuff, and return a
 // presumably different callback function.
@@ -1787,7 +1484,7 @@ function wrappy (fn, cb) {
   }
 }
 
-},{}],17:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 var wrappy = require('wrappy')
 module.exports = wrappy(once)
 
@@ -1810,7 +1507,7 @@ function once (fn) {
   return f
 }
 
-},{"wrappy":16}],18:[function(require,module,exports){
+},{"wrappy":14}],16:[function(require,module,exports){
 (function (Buffer){
 /**
  * Convert a typed array to a Buffer without a copy
@@ -1845,7 +1542,7 @@ module.exports = function (arr) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":29,"is-typedarray":15}],19:[function(require,module,exports){
+},{"buffer":29,"is-typedarray":13}],17:[function(require,module,exports){
 (function (global){
 /*global Blob,File*/
 
@@ -1990,7 +1687,7 @@ exports.removeBlobs = function(data, callback) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./is-buffer":21,"isarray":24}],20:[function(require,module,exports){
+},{"./is-buffer":19,"isarray":22}],18:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -2392,7 +2089,7 @@ function error(data){
   };
 }
 
-},{"./binary":19,"./is-buffer":21,"component-emitter":22,"debug":23,"isarray":24,"json3":25}],21:[function(require,module,exports){
+},{"./binary":17,"./is-buffer":19,"component-emitter":20,"debug":21,"isarray":22,"json3":23}],19:[function(require,module,exports){
 (function (global){
 
 module.exports = isBuf;
@@ -2409,7 +2106,7 @@ function isBuf(obj) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],22:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 
 /**
  * Expose `Emitter`.
@@ -2575,7 +2272,7 @@ Emitter.prototype.hasListeners = function(event){
   return !! this.listeners(event).length;
 };
 
-},{}],23:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 
 /**
  * Expose `debug()` as the module.
@@ -2714,9 +2411,9 @@ try {
   if (window.localStorage) debug.enable(localStorage.debug);
 } catch(e){}
 
-},{}],24:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"dup":10}],25:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],23:[function(require,module,exports){
 /*! JSON v3.2.6 | http://bestiejs.github.io/json3 | Copyright 2012-2013, Kit Cambridge | http://kit.mit-license.org */
 ;(function (window) {
   // Convenience aliases.
@@ -3579,7 +3276,7 @@ arguments[4][10][0].apply(exports,arguments)
   }
 }(this));
 
-},{}],26:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports = toArray
 
 function toArray(list, index) {
@@ -3594,7 +3291,7 @@ function toArray(list, index) {
     return array
 }
 
-},{}],27:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 // created by @HenrikJoreteg
 var prefix;
 var version;
@@ -3641,7 +3338,330 @@ module.exports = {
     getUserMedia: getUserMedia
 };
 
-},{}],28:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
+var Socketiop2p = require('./socketio-p2p-client.js');
+
+function init () {
+  var socket = io();
+  var opts = {peerOpts: {trickle: false}, autoUpgrade: true};
+  var p2psocket = new Socketiop2p(socket, opts, function () {
+    console.log('My id is', p2psocket.peerId);
+    myPeerId.innerHTML = 'My id is '+p2psocket.peerId;
+  });
+
+  // Elements
+  var form = document.getElementById('msg-form');
+  var box = document.getElementById('msg-box');
+  var myPeerId = document.getElementById('my-peer-id');
+  var peerList = document.getElementById('peer-list');
+  var msgList = document.getElementById('msg-list');
+  var upgradeMsg = document.getElementById('upgrade-msg');
+
+  p2psocket.on('peer-msg', function(data) {
+    var li = document.createElement("li");
+    li.appendChild(document.createTextNode(data));
+    msgList.appendChild(li);
+  });
+
+  p2psocket.on('peer-signal', function(data) {
+    // console.log('peer-signal', data);
+    var li = document.createElement("li");
+    li.appendChild(document.createTextNode(data.fromPeerId));
+    peerList.appendChild(li);
+  });
+
+  form.addEventListener('submit', function(e, d) {
+    e.preventDefault();
+    var li = document.createElement("li");
+    li.appendChild(document.createTextNode(box.value));
+    msgList.appendChild(li);
+    p2psocket.emit('peer-msg', box.value)
+    box.value = '';
+  });
+
+  var debugButton = document.getElementById('debug');
+  debugButton.addEventListener('click', function(e) {
+    p2psocket;
+    Socketiop2p;
+    debugger;
+  })
+}
+
+document.addEventListener('DOMContentLoaded', init, false)
+
+},{"./socketio-p2p-client.js":27}],27:[function(require,module,exports){
+window.myDebug = require('debug')
+var Peer = require('simple-peer')
+var Emitter = require('component-emitter')
+var parser = require('socket.io-parser')
+var toArray = require('to-array')
+var hasBin = require('has-binary')
+var bind = require('component-bind')
+var debug = require('debug')('socket')
+var hat = require('hat')
+var extend = require('extend.js')
+var rtcSupport = require('webrtcsupport')
+
+var emitfn = Emitter.prototype.emit
+
+function Socketiop2p (socket, opts, cb) {
+  var self = this
+  self.useSockets = true
+  self.usePeerConnection = false
+  self.decoder = new parser.Decoder(this)
+  self.decoder.on('decoded', bind(this, this.ondecoded))
+  self.socket = socket
+  self.cb = cb
+  self._peers = {}
+  self.readyPeers = 0
+  self.ready = false
+  self._peerEvents = {
+                   upgrade: 1,
+                   error: 1,
+                   peer_signal: 1,
+                   peer_ready: 1
+                 }
+  var defaultOpts = {
+    autoUpgrade: true,
+    numClients: 5
+  }
+  self.opts = extend(defaultOpts, (opts || {}))
+  self.peerOpts = self.opts.peerOpts || {}
+  self.numConnectedClients
+
+  socket.on('numClients', function (numClients) {
+    self.peerId = socket.io.engine.id
+    self.numConnectedClients = numClients
+    if (rtcSupport.supportDataChannel) {
+      generateOffers(function (offers) {
+        var offerObj = {
+          offers: offers,
+          fromPeerId: self.peerId
+        }
+        socket.emit('offers', offerObj)
+      })
+    }
+
+    function generateOffers (cb) {
+      var offers = []
+      for (var i = 0; i < self.opts.numClients; ++i) {
+        generateOffer()
+      }
+      console.log('offers', offers);
+      function generateOffer () {
+        var offerId = hat(160)
+        var peerOpts = extend(self.peerOpts, {initiator: true})
+        var peer = self._peers[offerId] = new Peer(peerOpts)
+        peer.setMaxListeners(50)
+        self.setupPeerEvents(peer)
+        peer.on('signal', function (offer) {
+          // Fired when the peer wants to send signaling data to the remote peer.
+          // console.log('peer on signal', peer, offer);
+          offers.push({
+            offer: offer,
+            offerId: offerId
+          })
+          checkDone()
+        })
+
+        peer.on('connect', function () {
+          // Fired when the peer connection and data channel are ready to use.
+          console.log('peer on connect', peer)
+        })
+
+        peer.on('data', function (data) {
+          // Received a message from the remote peer (via the data channel).
+          console.log('peer on data', peer, data)
+        })
+
+        peer.on('close', function () {
+          // Called when the peer connection has closed.
+          console.log('peer on close', peer)
+        })
+
+        peer.on('error', function (err) {
+          // Fired when error occurs
+          console.log('peer on error', peer, err)
+          emitfn.call(this, 'peer-error', err)
+          debug('Error in peer %s', err)
+        })
+      }
+
+      function checkDone () {
+        if (offers.length === self.opts.numClients) {
+          debug('generated %s offers', self.opts.numClients)
+          cb(offers)
+        }
+      }
+    }
+  })
+
+  socket.on('offer', function (data) {
+    console.log('on offers', data);
+    var peerOpts = extend(self.peerOpts, {initiator: false})
+    var peer = self._peers[data.fromPeerId] = new Peer(peerOpts)
+    self.numConnectedClients++
+    peer.setMaxListeners(50)
+    self.setupPeerEvents(peer)
+    peer.on('signal', function (signalData) {
+      var signalObj = {
+        signal: signalData,
+        offerId: data.offerId,
+        fromPeerId: self.peerId,
+        toPeerId: data.fromPeerId
+      }
+      socket.emit('peer-signal', signalObj)
+    })
+
+    peer.on('error', function (err) {
+      emitfn.call(this, 'peer-error', err)
+      debug('Error in peer %s', err)
+    })
+    peer.signal(data.offer)
+  })
+
+  socket.on('peer-signal', function (data) {
+    // Select peer from offerId if exists
+    var peer = self._peers[data.offerId] || self._peers[data.fromPeerId]
+
+    peer.on('signal', function signal (signalData) {
+      var signalObj = {
+        signal: signalData,
+        offerId: data.offerId,
+        fromPeerId: self.peerId,
+        toPeerId: data.fromPeerId
+      }
+      socket.emit('peer-signal', signalObj)
+    })
+
+    peer.signal(data.signal)
+  })
+
+  self.on('peer_ready', function (peer) {
+    self.readyPeers++
+    if (self.readyPeers >= self.numConnectedClients && !self.ready) {
+      self.ready = true
+      if (self.opts.autoUpgrade) self.usePeerConnection = true
+      if (typeof self.cb === 'function') self.cb()
+      self.emit('upgrade')
+    }
+  })
+
+}
+
+Emitter(Socketiop2p.prototype)
+
+Socketiop2p.prototype.setupPeerEvents = function (peer) {
+  var self = this
+
+  peer.on('connect', function (peer) {
+    self.emit('peer_ready', peer)
+  })
+
+  peer.on('data', function (data) {
+    if (this.destroyed) return
+    self.decoder.add(data)
+  })
+}
+
+/**
+ * Overwride the inheritted 'on' method to add a listener to the socket instance
+ * that emits the event on the Socketio event loop
+**/
+
+Socketiop2p.prototype.on = function (type, listener) {
+  var self = this
+  this.socket.addEventListener(type, function (data) {
+    emitfn.call(self, type, data)
+  })
+  this.addEventListener(type, listener)
+}
+
+Socketiop2p.prototype.emit = function (data, cb) {
+  var self = this
+  var argsObj = cb || {}
+  var encoder = new parser.Encoder()
+
+  if (this._peerEvents.hasOwnProperty(data) || argsObj.fromSocket) {
+    emitfn.apply(this, arguments)
+  } else if (this.usePeerConnection || !this.useSockets) {
+    var args = toArray(arguments)
+    var parserType = parser.EVENT // default
+    if (hasBin(args)) { parserType = parser.BINARY_EVENT } // binary
+    var packet = { type: parserType, data: args}
+
+    encoder.encode(packet, function (encodedPackets) {
+      if (encodedPackets[1] instanceof ArrayBuffer) {
+        self._sendArray(encodedPackets)
+      } else if (encodedPackets) {
+        for (var i = 0; i < encodedPackets.length; i++) {
+          self._send(encodedPackets[i])
+        }
+      } else {
+        throw new Error('Encoding error')
+      }
+    })
+  } else {
+    this.socket.emit(data, cb)
+  }
+}
+
+/**
+* If the second packet is a binary attachment,
+* swap out the attachment number for the number of chunks in the array
+* before sending the new packet and chunks
+**/
+
+Socketiop2p.prototype._sendArray = function (arr) {
+  var firstPacket = arr[0]
+  var interval = 5000
+  var arrLength = arr[1].byteLength
+  var nChunks = Math.ceil(arrLength / interval)
+  var packetData = firstPacket.substr(0, 1) + nChunks + firstPacket.substr(firstPacket.indexOf('-'))
+  this._send(packetData)
+  this.binarySlice(arr[1], interval, this._send)
+}
+
+Socketiop2p.prototype._send = function (data) {
+  var self = this
+  for (var peerId in self._peers) {
+    var peer = self._peers[peerId]
+    if (peer._channelReady) {
+      peer.send(data)
+    }
+  }
+}
+
+Socketiop2p.prototype.binarySlice = function (arr, interval, callback) {
+  for (var start = 0; start < arr.byteLength; start += interval) {
+    var chunk = arr.slice(start, start + interval)
+    callback.call(this, chunk)
+  }
+}
+
+Socketiop2p.prototype.ondecoded = function (packet) {
+  var args = packet.data || []
+  emitfn.apply(this, args)
+}
+
+Socketiop2p.prototype.disconnect = function () {
+  for (var peerId in this._peers) {
+    var peer = this._peers[peerId]
+    peer.destroy()
+    this.socket.disconnect()
+  }
+}
+
+/**
+ * Use peerConnection instead of socket.io one.
+**/
+Socketiop2p.prototype.upgrade = function () {
+  this.usePeerConnection = true
+}
+
+module.exports = Socketiop2p
+
+},{"component-bind":1,"component-emitter":2,"debug":3,"extend.js":6,"has-binary":7,"hat":9,"simple-peer":10,"socket.io-parser":18,"to-array":24,"webrtcsupport":25}],28:[function(require,module,exports){
 
 },{}],29:[function(require,module,exports){
 /*!
@@ -5633,10 +5653,10 @@ function isUndefined(arg) {
 }
 
 },{}],34:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"dup":14}],35:[function(require,module,exports){
-arguments[4][10][0].apply(exports,arguments)
-},{"dup":10}],36:[function(require,module,exports){
+arguments[4][12][0].apply(exports,arguments)
+},{"dup":12}],35:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"dup":8}],36:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -8096,4 +8116,4 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":29}]},{},[1]);
+},{"buffer":29}]},{},[26]);

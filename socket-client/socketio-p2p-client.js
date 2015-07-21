@@ -55,6 +55,7 @@ function Socketiop2p (socket, opts, cb) {
       for (var i = 0; i < self.opts.numClients; ++i) {
         generateOffer()
       }
+      console.log('offers', offers);
       function generateOffer () {
         var offerId = hat(160)
         var peerOpts = extend(self.peerOpts, {initiator: true})
@@ -62,6 +63,8 @@ function Socketiop2p (socket, opts, cb) {
         peer.setMaxListeners(50)
         self.setupPeerEvents(peer)
         peer.on('signal', function (offer) {
+          // Fired when the peer wants to send signaling data to the remote peer.
+          // console.log('peer on signal', peer, offer);
           offers.push({
             offer: offer,
             offerId: offerId
@@ -69,7 +72,24 @@ function Socketiop2p (socket, opts, cb) {
           checkDone()
         })
 
+        peer.on('connect', function () {
+          // Fired when the peer connection and data channel are ready to use.
+          console.log('peer on connect', peer)
+        })
+
+        peer.on('data', function (data) {
+          // Received a message from the remote peer (via the data channel).
+          console.log('peer on data', peer, data)
+        })
+
+        peer.on('close', function () {
+          // Called when the peer connection has closed.
+          console.log('peer on close', peer)
+        })
+
         peer.on('error', function (err) {
+          // Fired when error occurs
+          console.log('peer on error', peer, err)
           emitfn.call(this, 'peer-error', err)
           debug('Error in peer %s', err)
         })
@@ -85,6 +105,7 @@ function Socketiop2p (socket, opts, cb) {
   })
 
   socket.on('offer', function (data) {
+    console.log('on offers', data);
     var peerOpts = extend(self.peerOpts, {initiator: false})
     var peer = self._peers[data.fromPeerId] = new Peer(peerOpts)
     self.numConnectedClients++
