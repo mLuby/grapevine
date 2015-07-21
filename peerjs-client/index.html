@@ -76,5 +76,135 @@
         <td><input type="text" ng-model="ctrl.dataToAll"><button ng-click="ctrl.gv.sendToAllConnections({timestamp:null, peer:ctrl.gv.id, data:ctrl.dataToAll})">send message</button></td>
       </tr>
     </table>
+    <!-- 
+    <style type="text/css">
+      .node {
+        stroke: #fff;
+        stroke-width: 1.5px;
+      }
+      .link {
+        stroke: #999;
+        stroke-opacity: .6;
+      }
+      svg{
+        float: right;
+      }
+      circle {
+          pointer-events: none;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+    <script>
+      var width = 960,
+          height = 500;
+
+      var color = d3.scale.category20();
+
+      var force = d3.layout.force()
+          .charge(-120)
+          .linkDistance(30)
+          .size([width, height]);
+
+      var svg = d3.select('body').insert('svg', ':first-child')
+          .attr('width', width)
+          .attr('height', height);
+
+      var graph = {
+        nodes:[
+          {name:0, relation:'self', status:'connected'},
+            {name:1, relation:'parent', status:'connected'},
+            {name:2, relation:'parent', status:'connected'},
+            {name:3, relation:'parent', status:'connected'},
+              {name:4, relation:'parent', status:'connected'},
+            {name:5, relation:'child', status:'connected'},
+            {name:6, relation:'child', status:'connected'},
+            {name:7, relation:'child', status:'connected'},
+              {name:8, relation:'child', status:'disconnected'},
+              {name:9, relation:'child', status:'closed'},
+              {name:10, relation:'child', status:'destroyed'},
+        ],
+        links:[
+          {source:0, target:1, relation:'parent', status:'connected'},
+          {source:0, target:2, relation:'parent', status:'connected'},
+          {source:0, target:3, relation:'parent', status:'connected'},
+          {source:1, target:4, relation:'parent', status:'connected'},
+          {source:2, target:4, relation:'parent', status:'connected'},
+          {source:3, target:4, relation:'parent', status:'connected'},
+          {source:0, target:5, relation:'child', status:'disconnected'},
+          {source:0, target:6, relation:'child', status:'disconnected'},
+          {source:5, target:8, relation:'child', status:'disconnected'},
+          {source:5, target:9, relation:'child', status:'closed'},
+          {source:5, target:10, relation:'child', status:'destroyed'},
+          {source:6, target:8, relation:'child', status:'disconnected'},
+          {source:6, target:9, relation:'child', status:'closed'},
+          {source:6, target:10, relation:'child', status:'destroyed'},
+          {source:7, target:8, relation:'child', status:'disconnected'},
+          {source:7, target:9, relation:'child', status:'closed'},
+          {source:7, target:10, relation:'child', status:'destroyed'},
+        ]
+      };
+
+      force
+          .nodes(graph.nodes)
+          .links(graph.links)
+          .start();
+
+
+      var relationColors = {
+        'self': '#C0C0C0', // silver
+        'parent': '#800080', //purple
+        'child': '#00FFFF' // cyan
+      };
+      var statusColors = {
+        'connected': '#4EED2C', // green
+        'disconnected': '#2CC8ED', // blue
+        'closed': '#FF9D3D', // orange
+        'destroyed': '#FF0000' // red
+      };
+
+      var link = svg.selectAll('.link')
+          .data(graph.links)
+        .enter().append('line')
+          .attr('class', 'link')
+          .style('stroke', function(d) { return statusColors[d.status]; });
+
+      var node = svg.selectAll('.node')
+          .data(graph.nodes)
+          .enter()
+          .append("g") // container for circle and title
+          .attr('class', 'node')
+          .call(force.drag); // lets you drag the nodes
+
+      node.append('circle')
+          .attr('r', 5)
+          .style("stroke", "black")
+          .style("stroke-width", function(d){ return d.name === 0 ? 2 : 0 })
+          .style('fill', function(d) { return relationColors[d.relation]; })
+
+      node.append('text')
+          .attr('dx', -2)
+          .attr('dy', 2)
+          .style('font-size', 6)
+          .style('stroke', 'black')
+          .style('stroke-width', 1)
+          .text(function(d) { return d.name; })
+
+      // .append("text")
+      //     .attr("dx", ".10em")
+      //     .attr("dy", ".10em")
+
+      force.on('tick', function() {
+        link.attr('x1', function(d) { return d.source.x; })
+            .attr('y1', function(d) { return d.source.y; })
+            .attr('x2', function(d) { return d.target.x; })
+            .attr('y2', function(d) { return d.target.y; });
+
+        node.attr('transform', function(d) { return 'translate('+d.x+','+d.y+')'; } );
+
+        // .attr('x', function(d) { return d.x; })
+            // .attr('y', function(d) { return d.y; });
+      });
+    </script>
+    -->
   </body>
 </html>
