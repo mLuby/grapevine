@@ -51,11 +51,11 @@ expressPeerServer.on('disconnect', function (id) {
   // or when the peer can no longer be reached.
   console.log('peer',id,'disconnected from server');
   // If in current layer, remove it.
-  var currentLayerIndex = currentLayer.indexOf(id);
-  if(currentLayerIndex !== -1){
-    console.log('removed',id,'from current layer');
-    currentLayer.splice(currentLayerIndex, 1);
-  }
+  // var currentLayerIndex = currentLayer.indexOf(id);
+  // if(currentLayerIndex !== -1){
+  //   console.log('removed',id,'from current layer');
+  //   currentLayer.splice(currentLayerIndex, 1);
+  // }
 });
 
 var maxPeersPerLayer = 3;

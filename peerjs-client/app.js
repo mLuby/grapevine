@@ -1,4 +1,5 @@
-// TODO self-disconnect when has enough parents
+// TODO verified from server
+// TODO reconnect on orphan
 
 var app = angular.module('grapevine', []);
 
@@ -26,7 +27,6 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     } else {
       return context.data.peer.disconnected ? 'disconnected' : 'connected';
     }
-    // $rootScope.$digest();
   }
 
   function discon(){
@@ -134,7 +134,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
       }
     }
     function verifiedFromServer(message){
-      // TODO
+
       return true;
     }
   }

@@ -1,3 +1,5 @@
+// TODO reconnect to server on orphan
+
 var children = {};
 var parents = {};
 var serverPublicKey = '138g9u2oy4ghlk';
