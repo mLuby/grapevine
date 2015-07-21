@@ -23,9 +23,6 @@ app.get('/children', function (req, res) {
 var total = 0;
 
 app.post('/message', function(req, res) {
-  console.log('req.body', req.body);
-
-
   if (req.body.total) {
     total += req.body.total;
 
@@ -41,7 +38,6 @@ app.post('/message', function(req, res) {
       console.log('No clients are currently connected to the server.');
     }
   }
-
   return res.sendStatus(200);
 });
 
