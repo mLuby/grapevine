@@ -1,0 +1,38 @@
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.container-fluid {
+  padding-top: 5%;
+}
+
+.control-panel {
+  border: 1px dashed;
+  padding: 20px;
+  height: 200px;
+  width: 300px;
+}
+
+.bottom-left {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+.bottom-right {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.connected {
+  color: green;
+}
+.disconnected {
+  color: orange;
+}
+.closed {
+  color: red;
+}
