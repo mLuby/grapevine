@@ -19,19 +19,27 @@ app.use('/webrtc', expressPeerServer);
 app.get('/children', function (req, res) {
   return res.send(previousLayer);
 });
+
+var total = 0;
+
 app.post('/message', function(req, res) {
   console.log('req.body', req.body);
 
-  // TODO: make sure _clients is consistent with currentLayer
-  if (expressPeerServer._clients.peerjs) {
-    console.log('Emitting update.');
-    var peerIds = Object.keys(expressPeerServer._clients.peerjs);
-    for (var id in peerIds) {
-      var peer = expressPeerServer._clients.peerjs[peerIds[id]];
-      peer.socket.send(JSON.stringify({ type: 'MESSAGE', payload: req.body }));
+
+  if (req.body.total) {
+    total += req.body.total;
+
+    // TODO: make sure _clients is consistent with currentLayer
+    if (expressPeerServer._clients.peerjs) {
+      console.log('Emitting update.');
+      var peerIds = Object.keys(expressPeerServer._clients.peerjs);
+      for (var id in peerIds) {
+        var peer = expressPeerServer._clients.peerjs[peerIds[id]];
+        peer.socket.send(JSON.stringify({ type: 'MESSAGE', payload: { total: total } }));
+      }
+    } else {
+      console.log('No clients are currently connected to the server.');
     }
-  } else {
-    console.log('No clients are currently connected to the server.');
   }
 
   return res.sendStatus(200);
