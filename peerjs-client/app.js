@@ -87,7 +87,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
       parentsOrChildren.push({id:dataConnection.peer, dataConnection:dataConnection, status:'connected'});
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
 
-      if(context.data.parents.length+1 >= context.data.expectedNumParents){
+      if(context.data.parents.length >= context.data.expectedNumParents){
         discon();
       }
     });
@@ -97,6 +97,17 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     dataConnection.on('close', function() {
       console.log('dataConnection close', dataConnection.peer, dataConnection.open);
       findPeerByID(dataConnection.peer).status = 'closed';
+
+      parentClosedStatuses = context.data.parents.map(
+        function(parent){
+          return parent.status == 'closed' ? true : false;
+        }
+      );
+      if(!_.contains(parentClosedStatuses, false)) {
+        console.log('All parents are dead, I am an orphan');
+        context.data.peer.reconnect();
+      }
+
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     });
 
