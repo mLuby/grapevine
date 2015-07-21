@@ -142,6 +142,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
       context.data.total = message.content.total;
       sendToAllConnections(message);
     }
+
     context.data.messages.push(message);
     $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     function alreadyReceived(message){

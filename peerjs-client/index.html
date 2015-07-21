@@ -4,6 +4,7 @@
     <title>Grapevine</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="angular.min.js"></script>
     <script src="igg-peer.js"></script>
     <script src="app.js"></script>
@@ -51,22 +52,5 @@
       <h2 ng-class="{connected:ctrl.gv.peerStatus()==='connected', disconnected:ctrl.gv.peerStatus()==='disconnected', closed:ctrl.gv.peerStatus()==='closed'}">Peer ID: {{ctrl.gv.id}}</h2>
       <button ng-click="ctrl.gv.discon()">disconnect from server</button>
     </div>
-
-    <!-- <table>
-      <caption>Messages</caption>
-      <tr>
-        <th>timestamp</th>
-        <th>source peer</th>
-        <th>data</th>
-      </tr>
-      <tr ng-repeat="message in ctrl.gv.messages | orderBy:'-timestamp'">
-        <td class="value">{{message.timestamp}}</td>
-        <td class="value">{{message.peer}}</td>
-        <td class="value">{{message.data}}</td>
-      </tr>
-      <tr>
-        <td><input type="text" ng-model="ctrl.dataToAll"><button ng-click="ctrl.gv.sendToAllConnections({timestamp:null, peer:ctrl.gv.id, data:ctrl.dataToAll})">send message</button></td>
-      </tr>
-    </table> -->
   </body>
 </html>
