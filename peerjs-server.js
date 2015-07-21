@@ -1,3 +1,5 @@
+// TODO ability to send message from server to currentLayer Peers
+
 var express = require('express');
 var app = express();
 var port = process.env.PORT || 3000;

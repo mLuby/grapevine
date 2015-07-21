@@ -1,3 +1,5 @@
+// TODO self-disconnect when has enough parents
+
 var app = angular.module('grapevine', []);
 
 app.controller('grapevineController', ['Grapevine', '$scope', ctrl]);
@@ -10,10 +12,29 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   var context = this;
   context.data = {
     id: '',
+    expectedNumParents: 3,
     parents: [],
     children: [],
     messages: [],
     sendToAllConnections: sendToAllConnections,
+    discon: discon,
+    peerStatus: peerStatus
+  };
+  function peerStatus(string){
+    if(context.data.peer.destroyed){
+      return 'closed';
+    } else {
+      return context.data.peer.disconnected ? 'disconnected' : 'connected';
+    }
+    // $rootScope.$digest();
+  }
+
+  function discon(){
+    console.log('peer',context.data.peer);
+    console.log('auto-disconnecting');
+    context.data.peer.disconnect();
+    console.log('auto-disconnected');
+    console.log('peer',context.data.peer);
   };
 
   // init
@@ -47,7 +68,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     console.log('peer disconnected');
     // console.log('reconnecting with id', context.data.id);
     // context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});//{key: 'lwjd5qra8257b9'});
-    // $rootScope.$digest();
+    $rootScope.$digest();
   });
 
   context.data.peer.on('error', function(err) {
@@ -61,6 +82,10 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
       var parentsOrChildren = options.isChild ? context.data.children : context.data.parents; 
       parentsOrChildren.push({id:dataConnection.peer, dataConnection:dataConnection, status:'connected'});
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
+
+      if(context.data.parents.length+1 >= context.data.expectedNumParents){
+        discon();
+      }
     });
 
     dataConnection.on('data', processMessage);
