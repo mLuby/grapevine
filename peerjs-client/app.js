@@ -1,5 +1,4 @@
-// TODO verified from server
-// TODO reconnect on orphan
+// TODO self-disconnect when has enough parents
 
 var app = angular.module('grapevine', []);
 
@@ -27,6 +26,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     } else {
       return context.data.peer.disconnected ? 'disconnected' : 'connected';
     }
+    // $rootScope.$digest();
   }
 
   function discon(){
@@ -41,7 +41,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   var startTime = (new Date()).getTime()%1000000;
   context.data.id = startTime;
   context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/webrtc'});
-  
+
   // peer (self) functionality
   context.data.peer.on('connection', function(dataConnection) {
     console.log('peer dataConnection from', dataConnection.peer);
@@ -49,10 +49,10 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   });
 
   context.data.peer.on('open', function(id) {
-    console.log('peer',id,'open');
-    $http.get('http://localhost:3000/children').success(function(childrenIds){ 
+    console.log('peer', id,'open');
+    $http.get('http://localhost:3000/children').success(function(childrenIds){
       console.log('children', childrenIds);
-      childrenIds.forEach(function(childId){ 
+      childrenIds.forEach(function(childId){
         var dataConnection = context.data.peer.connect(childId);
         handleOpenConnection(dataConnection, {isChild: true});
       });
@@ -72,14 +72,18 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   });
 
   context.data.peer.on('error', function(err) {
-
     console.warn('peer error',err);
   });
 
+  context.data.peer.on('server-update', function(msg) {
+    // TODO: fill in
+    console.log('got a server update');
+    console.log(msg);
+  });
   function handleOpenConnection(dataConnection, options){
-    dataConnection.on('open', function() { 
+    dataConnection.on('open', function() {
       console.log('dataConnection open', dataConnection.peer, dataConnection.open);
-      var parentsOrChildren = options.isChild ? context.data.children : context.data.parents; 
+      var parentsOrChildren = options.isChild ? context.data.children : context.data.parents;
       parentsOrChildren.push({id:dataConnection.peer, dataConnection:dataConnection, status:'connected'});
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
 
@@ -90,14 +94,14 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
 
     dataConnection.on('data', processMessage);
 
-    dataConnection.on('close', function() { 
+    dataConnection.on('close', function() {
       console.log('dataConnection close', dataConnection.peer, dataConnection.open);
       findPeerByID(dataConnection.peer).status = 'closed';
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     });
 
-    dataConnection.on('error', function(err) { 
-  
+    dataConnection.on('error', function(err) {
+
       console.log(dataConnection.peer, dataConnection.open, 'dataConnection error', err);
     });
   }
@@ -120,7 +124,9 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   }
 
   function processMessage(message){
-    if(!alreadyReceived(message) && verifiedFromServer(message)){
+    console.log('Processing message.');
+
+    if(!alreadyReceived(message) && verifiedFromServer(message)) {
       context.data.messages.push(message);
       sendToAllConnections(message);
       $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
@@ -134,7 +140,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
       }
     }
     function verifiedFromServer(message){
-
+      // TODO
       return true;
     }
   }

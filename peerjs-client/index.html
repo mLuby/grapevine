@@ -3,7 +3,7 @@
   <head>
     <title>Grapevine</title>
     <script src="angular.min.js"></script>
-    <script src="peer.min.js"></script>
+    <script src="igg-peer.js"></script>
     <script src="app.js"></script>
     <style type="text/css">
       table{
@@ -16,7 +16,7 @@
         background-color: #DDD;
       }
       .connected{
-        color: green; 
+        color: green;
       }
       .disconnected{
         color: orange;
@@ -76,7 +76,7 @@
         <td><input type="text" ng-model="ctrl.dataToAll"><button ng-click="ctrl.gv.sendToAllConnections({timestamp:null, peer:ctrl.gv.id, data:ctrl.dataToAll})">send message</button></td>
       </tr>
     </table>
-    <!-- 
+    <!--
     <style type="text/css">
       .node {
         stroke: #fff;
