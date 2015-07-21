@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <script src="http://kjur.github.io/jsrsasign/jsrsasign-latest-all-min.js"></script>
+  </head>
+  <body>
+    <script>
+      // ON SERVER
+      // server generates RSA keys on init.
+      var keys = KEYUTIL.generateKeypair("RSA", 1024);
+      // server has a message object to send to peers.
+      var message = {a: 'hello world', b:123, c:[1,]};
+      // server signs message object with privateRSAKey.
+      var signedJSONWebSignature = signObj(message, keys.prvKeyObj);
+      // server sends data to peer.
+      var data = {message:message, signedJSONWebSignature:signedJSONWebSignature};
+      console.log('data from server to peer',data);
+
+      // ON PEER
+      // peer has server publicRSAKey from when it first connected.
+      var publicRSAKey = keys.pubKeyObj;
+      // peer validates signedJSONWebSignature with publicRSAKey.
+      var isValid = verifyObj(data.signedJSONWebSignature, publicRSAKey);
+      console.log('valid?',isValid,'message',data.message);
+      
+      function signObj(jsonObject, privateRSAKey){
+        var signedJSONWebSignature = KJUR.jws.JWS.sign('RS256', JSON.stringify({alg: 'RS256'}), jsonObject, privateRSAKey);
+        return signedJSONWebSignature;     
+      }
+
+      function verifyObj(signedJSONWebSignature, publicRSAKey){
+        var isValid = KJUR.jws.JWS.verify(signedJSONWebSignature, publicRSAKey, ['RS256']);
+        return !!isValid;
+      };
+    </script>
+  </body>
+</html>
