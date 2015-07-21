@@ -18,23 +18,21 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     messages: [],
     sendToAllConnections: sendToAllConnections,
     discon: discon,
-    peerStatus: peerStatus
+    peerStatus: peerStatus,
+    publicRSAKey: {}
   };
+
   function peerStatus(string){
     if(context.data.peer.destroyed){
       return 'closed';
     } else {
       return context.data.peer.disconnected ? 'disconnected' : 'connected';
     }
-    // $rootScope.$digest();
   }
 
   function discon(){
-    console.log('peer',context.data.peer);
-    console.log('auto-disconnecting');
     context.data.peer.disconnect();
     console.log('auto-disconnected');
-    console.log('peer',context.data.peer);
   };
 
   // init
@@ -48,14 +46,21 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     handleOpenConnection(dataConnection, {isChild: false});
   });
 
+  // on connect to peerjs server
   context.data.peer.on('open', function(id) {
     console.log('peer', id,'open');
+    // get and connect to children
     $http.get('http://localhost:3000/children').success(function(childrenIds){
       console.log('children', childrenIds);
       childrenIds.forEach(function(childId){
         var dataConnection = context.data.peer.connect(childId);
         handleOpenConnection(dataConnection, {isChild: true});
       });
+    });
+    // get server publicRSAKey to verify server messages
+    $http.get('http://localhost:3000/publicKey').success(function(publicKeyObj){      
+      context.data.publicRSAKey = KEYUTIL.getKey(publicKeyObj);
+      console.log('retrieved publicRSAKey', context.data.publicRSAKey);
     });
   });
 
@@ -75,11 +80,11 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     console.warn('peer error',err);
   });
 
-  context.data.peer.on('server-update', function(msg) {
-    // TODO: fill in
-    console.log('got a server update');
-    console.log(msg);
+  context.data.peer.on('server-message', function(msg) {
+    var isValid = verifyJSON(msg, context.data.publicRSAKey);
+    console.log('message from server?', isValid, msg);
   });
+
   function handleOpenConnection(dataConnection, options){
     dataConnection.on('open', function() {
       console.log('dataConnection open', dataConnection.peer, dataConnection.open);
@@ -160,3 +165,9 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
 
   return context.data;
 }]);
+
+function verifyJSON(signedJSONWebSignature, publicRSAKey){
+  console.log('signedJSONWebSignature',signedJSONWebSignature,JSON.stringify(publicRSAKey));
+  var isValid = KJUR.jws.JWS.verify(signedJSONWebSignature, publicRSAKey, ['RS256']);
+  return !!isValid;
+};
