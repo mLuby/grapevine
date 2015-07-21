@@ -1,20 +1,19 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var Socketiop2p = require('./socketio-p2p-client.js');
-// var io = require('socket.io-client');
 
 function init () {
-
   var socket = io();
-  var opts = {peerOpts: {trickle: false}, autoUpgrade: false};
+  var opts = {peerOpts: {trickle: false}, autoUpgrade: true};
   var p2psocket = new Socketiop2p(socket, opts, function () {
-    privateButton.disabled = false;
-    p2psocket.emit('peer-obj', 'Hello there. I am ' + p2psocket.peerId);
+    console.log('My id is', p2psocket.peerId);
+    myPeerId.innerHTML = 'My id is '+p2psocket.peerId;
   });
 
   // Elements
-  var privateButton = document.getElementById('private');
   var form = document.getElementById('msg-form');
   var box = document.getElementById('msg-box');
+  var myPeerId = document.getElementById('my-peer-id');
+  var peerList = document.getElementById('peer-list');
   var msgList = document.getElementById('msg-list');
   var upgradeMsg = document.getElementById('upgrade-msg');
 
@@ -22,6 +21,13 @@ function init () {
     var li = document.createElement("li");
     li.appendChild(document.createTextNode(data));
     msgList.appendChild(li);
+  });
+
+  p2psocket.on('peer-signal', function(data) {
+    // console.log('peer-signal', data);
+    var li = document.createElement("li");
+    li.appendChild(document.createTextNode(data.fromPeerId));
+    peerList.appendChild(li);
   });
 
   form.addEventListener('submit', function(e, d) {
@@ -33,24 +39,16 @@ function init () {
     box.value = '';
   });
 
-  privateButton.addEventListener('click', function(e) {
-    goPrivate();
-    p2psocket.emit('go-private', true)
+  var debugButton = document.getElementById('debug');
+  debugButton.addEventListener('click', function(e) {
+    p2psocket;
+    Socketiop2p;
+    debugger;
   })
-
-  p2psocket.on('go-private', function () {
-    goPrivate();
-  });
-
-  function goPrivate () {
-    p2psocket.useSockets = false;
-    upgradeMsg.innerHTML = "WebRTC connection established!";
-    privateButton.disabled = true;
-  }
-
 }
 
 document.addEventListener('DOMContentLoaded', init, false)
+
 },{"./socketio-p2p-client.js":2}],2:[function(require,module,exports){
 window.myDebug = require('debug')
 var Peer = require('simple-peer')
@@ -109,6 +107,7 @@ function Socketiop2p (socket, opts, cb) {
       for (var i = 0; i < self.opts.numClients; ++i) {
         generateOffer()
       }
+      console.log('offers', offers);
       function generateOffer () {
         var offerId = hat(160)
         var peerOpts = extend(self.peerOpts, {initiator: true})
@@ -116,6 +115,8 @@ function Socketiop2p (socket, opts, cb) {
         peer.setMaxListeners(50)
         self.setupPeerEvents(peer)
         peer.on('signal', function (offer) {
+          // Fired when the peer wants to send signaling data to the remote peer.
+          // console.log('peer on signal', peer, offer);
           offers.push({
             offer: offer,
             offerId: offerId
@@ -123,7 +124,24 @@ function Socketiop2p (socket, opts, cb) {
           checkDone()
         })
 
+        peer.on('connect', function () {
+          // Fired when the peer connection and data channel are ready to use.
+          console.log('peer on connect', peer)
+        })
+
+        peer.on('data', function (data) {
+          // Received a message from the remote peer (via the data channel).
+          console.log('peer on data', peer, data)
+        })
+
+        peer.on('close', function () {
+          // Called when the peer connection has closed.
+          console.log('peer on close', peer)
+        })
+
         peer.on('error', function (err) {
+          // Fired when error occurs
+          console.log('peer on error', peer, err)
           emitfn.call(this, 'peer-error', err)
           debug('Error in peer %s', err)
         })
@@ -139,6 +157,7 @@ function Socketiop2p (socket, opts, cb) {
   })
 
   socket.on('offer', function (data) {
+    console.log('on offers', data);
     var peerOpts = extend(self.peerOpts, {initiator: false})
     var peer = self._peers[data.fromPeerId] = new Peer(peerOpts)
     self.numConnectedClients++
@@ -301,6 +320,7 @@ Socketiop2p.prototype.upgrade = function () {
 }
 
 module.exports = Socketiop2p
+
 },{"component-bind":3,"component-emitter":4,"debug":5,"extend.js":8,"has-binary":9,"hat":11,"simple-peer":12,"socket.io-parser":20,"to-array":26,"webrtcsupport":27}],3:[function(require,module,exports){
 /**
  * Slice reference.

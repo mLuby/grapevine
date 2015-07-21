@@ -10,13 +10,18 @@ server.listen(3000);
 
 app.use(express.static(__dirname + '/client'));
 
-// app.get('/', function (req, res) {
-//   res.sendfile(__dirname + '/client');
-// });
-
 io.on('connection', function (socket) {
-  socket.emit('news', { hello: 'world' });
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
+  console.log('io on connection', socket.id);
+});
+
+io.on('close', function (socket) {
+  console.log('io on close', socket.id);
+});
+
+io.on('disconnect', function (socket) {
+  console.log('io on disconnect', socket.id);
+});
+
+io.on('leave', function (socket) {
+  console.log('io on leave', socket.id);
 });
