@@ -67,12 +67,12 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   context.data.peer.on('close', function() {
     // TODO
     console.log('peer close');
+    $rootScope.$digest();
   });
 
   context.data.peer.on('disconnected', function() {
     console.log('peer disconnected');
     // console.log('reconnecting with id', context.data.id);
-    // context.data.peer = new Peer(context.data.id, {host: 'localhost', port: 3000, path: '/api'});//{key: 'lwjd5qra8257b9'});
     $rootScope.$digest();
   });
 
@@ -81,6 +81,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   });
 
   context.data.peer.on('server-message', function(msg) {
+    console.log('about to verify',msg);
     var isValid = verifyJSON(msg, context.data.publicRSAKey);
     console.log('message from server?', isValid, msg);
   });
@@ -167,7 +168,7 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
 }]);
 
 function verifyJSON(signedJSONWebSignature, publicRSAKey){
-  console.log('signedJSONWebSignature',signedJSONWebSignature,JSON.stringify(publicRSAKey));
+  console.log('signedJSONWebSignature',signedJSONWebSignature);
   var isValid = KJUR.jws.JWS.verify(signedJSONWebSignature, publicRSAKey, ['RS256']);
   return !!isValid;
 };

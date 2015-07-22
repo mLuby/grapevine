@@ -20,12 +20,12 @@ var currentLayer  = []; // new connections; parents to previous layer.
 var previousLayer = []; // old connections; children to current layer.
 // generate RSA keys for signing and verifing messages from server
 var jsrsasign = require('jsrsasign');
-var RSAkeys = jsrsasign.KEYUTIL.generateKeypair("RSA", 1024);
-var publicRSAKey = RSAkeys.pubKeyObj;
-var privateRSAKey = RSAkeys.prvKeyObj;
+var _RSAkeys = jsrsasign.KEYUTIL.generateKeypair("RSA", 1024);
+var publicRSAKey = _RSAkeys.pubKeyObj;
+var privateRSAKey = _RSAkeys.prvKeyObj;
 
 // ENDPOINTS
-app.use('/', express.static('peerjs-client'));
+app.use('/', express.static('client'));
 
 app.use('/webrtc', expressPeerServer);
 
@@ -52,15 +52,14 @@ app.post('/message', function(req, res) {
 });
 
 function sendMessageToPeerId(message, peerId){
-  var signedData = 'bob';//signJSON(message, privateRSAKey);
+  var signedData = signJSON(message, privateRSAKey);
   var peer = expressPeerServer._clients.peerjs[peerId];
   console.log('server signed', message, 'to', signedData, 'for peer', peerId);
   peer.socket.send(JSON.stringify({ type:'MESSAGE', payload:signedData }));  
 }
 
 function signJSON(jsonObject, privateRSAKey){
-  var signedJSONWebSignature = KJUR.jws.JWS.sign('RS256', JSON.stringify({alg: 'RS256'}), jsonObject, privateRSAKey);
-  // console.log('RS256', JSON.stringify({alg: 'RS256'}), jsonObject, privateRSAKey,'=>',signedJSONWebSignature);
+  var signedJSONWebSignature = KJUR.jws.JWS.sign('RS256', JSON.stringify({alg: 'RS256'}), JSON.stringify(jsonObject), privateRSAKey);
   return signedJSONWebSignature;
 }
 
@@ -89,4 +88,3 @@ expressPeerServer.on('disconnect', function (id) {
   //   currentLayer.splice(currentLayerIndex, 1);
   // }
 });
-
