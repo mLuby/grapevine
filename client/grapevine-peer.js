@@ -939,7 +939,7 @@ Peer.prototype._handleMessage = function(message) {
 
     // IGG: Server message emission
     case 'MESSAGE':
-      this.emit('server-update', payload);
+      this.emit('server-message', payload);
       break;
 
     default:
