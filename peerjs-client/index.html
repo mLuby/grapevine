@@ -14,7 +14,9 @@
   <body ng-view ng-controller="grapevineController as ctrl">
     <div class="container-fluid">
       <div class="row">
-        <div class="col-md-6 col-md-offset-3 text-center">
+        <div class="col-md-8 col-md-offset-2 text-center">
+          <button ng-click="ctrl.gv.discon()">disconnect from server</button>
+          <h2 ng-class="{connected:ctrl.gv.peerStatus()==='connected', disconnected:ctrl.gv.peerStatus()==='disconnected', closed:ctrl.gv.peerStatus()==='closed'}">Peer ID: {{ctrl.gv.id}}</h2>
           <h1>Total Contributions: $<span>{{ctrl.gv.total}}</span></h1>
           <form>
             <div class="form-group">
@@ -25,15 +27,15 @@
           </form>
           <div class="col-md-6">
             <h3 class="text-center">Parents</h3>
-            <ul ng-repeat="peer in ctrl.gv.parents">
-              <li class="id">
+            <ul>
+              <li class="id" ng-repeat="peer in ctrl.gv.parents">
                 {{peer.id}} |
                 <span class="status" ng-class="{connected:peer.status==='connected', disconnected:peer.status==='disconnected', closed:peer.status==='closed'}">{{peer.status}}</span>
               </li>
             </ul>
             <h3 class="text-center">Children</h3>
-            <ul ng-repeat="peer in ctrl.gv.children">
-              <li class="id">
+            <ul>
+              <li class="id" ng-repeat="peer in ctrl.gv.children">
                 {{peer.id}} |
                 <span class="status" ng-class="{connected:peer.status==='connected', disconnected:peer.status==='disconnected', closed:peer.status==='closed'}">{{peer.status}}</span>
               </li>
@@ -41,17 +43,12 @@
           </div>
           <div class="col-md-6">
             <h3 class="text-center">Message Log</h3>
-            <ul ng-repeat="message in ctrl.gv.messages">
-              <li>[{{message.time}}][FROM: {{message.sender}}]{{message.content}}</li>
+            <ul id="messages">
+              <li ng-repeat="message in ctrl.gv.messages">[{{message.time}}][FROM: {{message.sender}}]{{message.content}}</li>
             </ul>
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="control-panel bottom-left text-center">
-      <h2 ng-class="{connected:ctrl.gv.peerStatus()==='connected', disconnected:ctrl.gv.peerStatus()==='disconnected', closed:ctrl.gv.peerStatus()==='closed'}">Peer ID: {{ctrl.gv.id}}</h2>
-      <button ng-click="ctrl.gv.discon()">disconnect from server</button>
     </div>
   </body>
 </html>

@@ -117,7 +117,11 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
         }
       );
       if(!_.contains(parentClosedStatuses, false)) {
-        console.log('All parents are dead, I am an orphan');
+        var msg = {
+          sender: 'me',
+          time: new Date().getTime(),
+          content: "I've become an orphan. Reconnecting."
+        }
         context.data.peer.reconnect();
       }
 

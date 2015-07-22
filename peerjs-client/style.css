@@ -5,7 +5,7 @@ ul {
 }
 
 .container-fluid {
-  padding-top: 5%;
+  padding-top: 2%;
 }
 
 .control-panel {
@@ -30,9 +30,15 @@ ul {
 .connected {
   color: green;
 }
+
 .disconnected {
   color: orange;
 }
+
 .closed {
   color: red;
+}
+
+#messages {
+  font-family: 'Courier New', Courier, 'Lucida Sans Typewriter', monospace;
 }
