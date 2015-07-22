@@ -17,6 +17,7 @@
         <div class="col-md-8 col-md-offset-2 text-center">
           <button ng-click="ctrl.gv.discon()">disconnect from server</button>
           <h2 ng-class="{connected:ctrl.gv.peerStatus()==='connected', disconnected:ctrl.gv.peerStatus()==='disconnected', closed:ctrl.gv.peerStatus()==='closed'}">Peer ID: {{ctrl.gv.id}}</h2>
+        <div class="col-md-6 col-md-offset-3 text-center">
           <h1>Total Contributions: $<span>{{ctrl.gv.total}}</span></h1>
           <form>
             <div class="form-group">
