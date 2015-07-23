@@ -6,6 +6,7 @@ var Grapevine = (function () {
   var parents = [];
   var messages = [];
   var expectedNumParents = 3;
+  var publicRSAKey = {};
 
   function Grapevine(options) {
     var self = this;
@@ -30,6 +31,7 @@ var Grapevine = (function () {
   //   port: 3000,
   //   peerEndpoint: '/webrtc'
   //   childrenEndpoint: '/children'
+  //   publicKeyEndpoint: '/publickey'
   // }
   Grapevine.prototype.connect = function(options) {
     var self = this;
@@ -46,6 +48,14 @@ var Grapevine = (function () {
           var peerDataConnection = thisPeer.connect(childId);
           handlePeerConnection(thisPeer, peerDataConnection, { isChild: true });
         });
+      });
+      var fullPublicKeyEndpoint = 'http://' + options.host + ':' + options.port + options.publicKeyEndpoint;
+      makeRequest(fullPublicKeyEndpoint, function(data) {
+        var n = new BigInteger(); // from jsrsasign>ext>jsbn.js
+        n.fromRadix(data.nRadix);
+        data.publicRSAKey.n = n;
+        publicRSAKey = KEYUTIL.getKey(data.publicRSAKey);
+        console.log('retrieved publicRSAKey',publicRSAKey);
       });
     });
 
@@ -66,24 +76,6 @@ var Grapevine = (function () {
     thisPeer.on('error', function(err) {
       console.warn('this peer error',err);
     });
-
-    function processMessage(message) {
-      // TODO interact with user-supplied callback
-      if(!alreadyReceived(message) && verifiedFromServer(message)) {
-        messages.push(message);
-        self.onMessage(message);
-        sendToAllConnections(message);
-      }
-
-      function alreadyReceived(message){
-        var messageIndex = messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
-        return ~messageIndex ? true: false;
-      }
-      function verifiedFromServer(message, serverPublicKey){
-        // TODO add message verification/decryption
-        return true;
-      }
-    }
   }
 
   function handlePeerConnection(thisPeer, peerDataConnection, options) {
@@ -136,6 +128,25 @@ var Grapevine = (function () {
     return ~parentsIndex ? parents[parentsIndex] : children[childrenIndex];
   }
 
+  function processMessage(message) {
+    // TODO interact with user-supplied callback
+    if(!alreadyReceived(message) && verifiedFromServer(message.signedJSONWebSignature, publicRSAKey)) {
+      messages.push(message);
+      self.onMessage(message);
+      sendToAllConnections(message);
+    }
+
+    function alreadyReceived(message){
+      var messageIndex = messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
+      return ~messageIndex ? true: false;
+    }
+    function verifiedFromServer(signedJSONWebSignature, serverPublicRSAKey){
+      var isValid = KJUR.jws.JWS.verify(signedJSONWebSignature, serverPublicRSAKey, ['RS256']);
+      console.log('valid?', !!isValid);
+      return !!isValid;
+    }
+  }
+
   function sendToAllConnections(message){
     var temp = message.sender; // TODO -_-
     message.sender = id
@@ -173,5 +184,6 @@ var Grapevine = (function () {
       }
     }
   }
+
   return Grapevine;
 })();

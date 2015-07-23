@@ -2,6 +2,11 @@
 
 var ExpressPeerServer = require('peer').ExpressPeerServer;
 var GrapevineServer, currentLayer = [], previousLayer = [], maxPeersPerLayer = 3;
+// generate RSA keys for signing and verifing messages from server
+var jsrsasign = require('jsrsasign');
+var _RSAkeys = jsrsasign.KEYUTIL.generateKeypair("RSA", 1024);
+var publicRSAKey = _RSAkeys.pubKeyObj;
+var privateRSAKey = _RSAkeys.prvKeyObj;
 
 function setup(server, options) {
   GrapevineServer = ExpressPeerServer(server, options);
@@ -34,17 +39,30 @@ function messageAll(message) {
 }
 
 function messageIndividual(message, peerId) {
-  // TODO: encrypt message
+  // sign payload and include signature for client-side verification
+  var payload = {
+    message: message,
+    signedJSONWebSignature: '',
+    sender: 'SERVER',
+    timestamp: new Date().getTime()
+  }
+  payload.signedJSONWebSignature = signJSON(payload);
   var peer = GrapevineServer._clients.peerjs[peerId];
-  peer.socket.send(JSON.stringify({ type: 'MESSAGE', payload: message }));
+  peer.socket.send(JSON.stringify({ type:'MESSAGE', payload:payload }));
 }
 
 function getChildren() {
   return previousLayer;
 }
 
+function signJSON(jsonObject){
+  var signedJSONWebSignature = KJUR.jws.JWS.sign('RS256', JSON.stringify({alg: 'RS256'}), JSON.stringify(jsonObject), privateRSAKey);
+  return signedJSONWebSignature;
+}
+
 module.exports = {
   setup: setup,
   messageAll: messageAll,
   getChildren: getChildren,
+  publicRSAKey: publicRSAKey
 };
