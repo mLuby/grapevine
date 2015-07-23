@@ -15,11 +15,6 @@ var server = app.listen(port, function () {
 app.use(bodyParser.json());
 // curl -H "Content-Type: application/json" -X POST -d '{"total":100}' http://localhost:3000/message
 
-// generate RSA keys for signing and verifing messages from server
-var _RSAkeys = jsrsasign.KEYUTIL.generateKeypair("RSA", 1024);
-var publicRSAKey = _RSAkeys.pubKeyObj;
-var privateRSAKey = _RSAkeys.prvKeyObj;
-
 // ENDPOINTS
 app.use('/', express.static('client'));
 app.use('/webrtc', Grapevine.setup(server, {}));
