@@ -9,10 +9,12 @@
     "jsrsasign": "^4.8.3",
     "peer": "^0.2.8"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "nodemon": "^1.3.8"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "./node_modules/.bin/nodemon ./server.js"
   },
   "repository": {
     "type": "git",

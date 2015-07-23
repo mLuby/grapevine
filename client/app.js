@@ -6,6 +6,7 @@ app.controller('grapevineController', ['Grapevine', '$scope', ctrl]);
 
 function ctrl(Grapevine, $scope){
   this.gv = Grapevine;
+  this.toHumanDateTime = function(t){ return (new Date(t)).toLocaleTimeString(); };
 };
 
 app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $rootScope){
@@ -20,7 +21,8 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     discon: discon,
     peerStatus: peerStatus,
     total: 0,
-    publicRSAKey: {}
+    publicRSAKey: {},
+    postMessageToServer: postMessageToServer
   };
 
   function peerStatus(string){
@@ -35,6 +37,11 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     context.data.peer.disconnect();
     console.log('auto-disconnected');
   };
+
+  function postMessageToServer(message){
+    console.log('postMessageToServer',message)
+    $http.post('http://localhost:3000/message', message);
+  }
 
   // init
   var startTime = (new Date()).getTime()%1000000;
@@ -81,18 +88,12 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     // console.warn('peer error',err);
   });
 
-  context.data.peer.on('server-message', function(msg) {
-    console.log('received server message', msg);
-    // var isValid = verifyJSON(msg, context.data.publicRSAKey);
+  context.data.peer.on('server-message', function(message) {
+    console.log('received server message', message);
+    // var isValid = verifyJSON(message, context.data.publicRSAKey);
     // console.log('message from server is valid?', isValid);
-
-    var message = {
-      content: msg,
-      time: new Date().getTime(),
-      sender: 'server'
-    }
-    context.data.messages.push(msg);
-    context.data.total = msg.total;
+    context.data.messages.push(message);
+    context.data.total = message.data.total;
 
     sendToAllConnections(message);
     $rootScope.$digest();
@@ -121,11 +122,12 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
       }, true);
 
       if(allParentsAreClosed) {
-        var msg = { // TODO where does this message go?
-          sender: 'me',
-          time: new Date().getTime(),
-          content: "I've become an orphan. Reconnecting."
-        }
+        console.log('I\'ve become an orphan. Reconnecting...');
+        // var message = { // TODO where does this message go?
+        //   sender: context.data.id,
+        //   timestamp: new Date().getTime(),
+        //   data: "I've become an orphan. Reconnecting."
+        // }
         context.data.peer.reconnect();
       }
 
@@ -155,17 +157,16 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   }
 
   function processMessage(message) {
-    console.log('got message:', message);
-
+    // console.log('got message:', message);
     if(!alreadyReceived(message) && verifiedFromServer(message)) {
-      context.data.total = message.content.total;
+      context.data.total = message.data.total;
       sendToAllConnections(message);
+      context.data.messages.push(message);
+      $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     }
 
-    context.data.messages.push(message);
-    $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
     function alreadyReceived(message){
-      var messageIndex = context.data.messages.map(function(message){ return message.time; }).indexOf(message.time);
+      var messageIndex = context.data.messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
       if(messageIndex !== -1){
         return true;
       } else {
@@ -179,16 +180,13 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
   }
 
   function sendToAllConnections(message){
-    console.log('sending', message,'to all connections');
-    var newMessage = {
-      sender: context.data.id,
-      content: message.content,
-      time: message.time,
-      newTime: new Date().getTime()
-    };
+    // console.log('sending', message,'to all connections');
+    var temp = message.sender; // TODO -_-
+    message.sender = context.data.id
     context.data.children.forEach(function(child){
-      sendToConnection(child.id, newMessage);
+      sendToConnection(child.id, message);
     });
+    message.sender = temp;
   }
 
   function sendToConnection(peerId, data){

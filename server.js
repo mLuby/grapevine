@@ -40,10 +40,14 @@ app.get('/children', function (req, res) {
 var total = 0;
 
 app.post('/message', function(req, res) {
-  var message = req.body;
+  var message = {
+    data: {},
+    sender: 'SERVER',
+    timestamp: new Date().getTime()
+  };
   if (req.body.total) {
     total += req.body.total;
-    message.total = total;
+    message.data.total = total;
   }
 
   // TODO: make sure _clients is consistent with currentLayer
