@@ -1,47 +1,20 @@
 `<!DOCTYPE html>
-<html ng-app='grapevine'>
+<html ng-app='appThatUsesGrapevine'>
   <head>
-    <title>Grapevine</title>
+    <title>App That Uses Grapevine</title>
+    <script src="grapevine-peer.js"></script>
+    <script src="grapevine-client.js"></script>
+
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="style.css">
-    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script> -->
     <script src="angular.min.js"></script>
-    <script src="http://kjur.github.io/jsrsasign/jsrsasign-latest-all-min.js"></script>
-    <script src="grapevine-peer.js"></script>
     <script src="app.js"></script>
   </head>
 
-  <body ng-view ng-controller="grapevineController as ctrl">
+  <body ng-view ng-controller="aController as ctrl">
     <div class="container-fluid">
       <div class="row">
         <div class="col-md-8 col-md-offset-2 text-center">
-          <button ng-click="ctrl.gv.discon()">disconnect from server</button>
-          <h2 ng-class="{connected:ctrl.gv.peerStatus()==='connected', disconnected:ctrl.gv.peerStatus()==='disconnected', closed:ctrl.gv.peerStatus()==='closed'}">Peer ID: {{ctrl.gv.id}}</h2>
-        <div class="col-md-6 col-md-offset-3 text-center">
-          <h1>Total Contributions: $<span>{{ctrl.gv.total}}</span></h1>
-          <form>
-            <div class="form-group">
-              <label for="contribution">Amount: </label>
-              <input type="number" name="amount" id="contribution" ng-model="ctrl.contribution">
-              <button ng-click="ctrl.gv.postMessageToServer({total:ctrl.contribution}); ctrl.contribution = 0" class="btn btn-default">Make contribution!</button>
-            </div>
-          </form>
-          <div class="col-md-6">
-            <h3 class="text-center">Parents</h3>
-            <ul>
-              <li class="id" ng-repeat="peer in ctrl.gv.parents">
-                {{peer.id}} |
-                <span class="status" ng-class="{connected:peer.status==='connected', disconnected:peer.status==='disconnected', closed:peer.status==='closed'}">{{peer.status}}</span>
-              </li>
-            </ul>
-            <h3 class="text-center">Children</h3>
-            <ul>
-              <li class="id" ng-repeat="peer in ctrl.gv.children">
-                {{peer.id}} |
-                <span class="status" ng-class="{connected:peer.status==='connected', disconnected:peer.status==='disconnected', closed:peer.status==='closed'}">{{peer.status}}</span>
-              </li>
-            </ul>
-          </div>
           <div class="col-md-6">
             <h3 class="text-center">Message Log</h3>
             <ul id="messages">

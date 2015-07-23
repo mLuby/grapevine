@@ -95,13 +95,13 @@ function findPeerByID(id, parents, children){
   var parentsIndex = parents.map(function(peer){ return peer.id; }).indexOf(id);
   var childrenIndex = children.map(function(peer){ return peer.id; }).indexOf(id);
   return ~parentsIndex ? parents[parentsIndex] : children[childrenIndex];
-  }
 }
 
 function processMessage(message) {
   // TODO interact with user-supplied callback
   if(!alreadyReceived(message) && verifiedFromServer(message)) {
     messages.push(message);
+    console.log('received', message);
     sendToAllConnections(message);
   }
 
