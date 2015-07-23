@@ -1,65 +1,129 @@
 'use strict';
 
 var Grapevine = (function() {
-  var children = [], parents = [], messages = [];
+  var id = ''
+  var children = [];
+  var parents = [];
+  var messages = [];
+  var expectedNumParents = 3;
 
   function Grapevine(options) {
-    var self = this;
-    self.id = makeId();
-    self.peer = new Peer(self.id, options);
-
-    peer.on('connection', function(dataConnection) {
-      handleOpenConnection(dataConnection, { isChild: false });
-    })
+    id = createUniqueId({ length:19 });
   }
 
   Grapevine.prototype.connect = function(url) {
+    var thisPeer = new Peer(id, options);
 
+    // The server connects
+    thisPeer.on('open', function(id){
+      // TODO generic GET; not Angular
+      $http.get('http://localhost:3000/children').success(function(childrenIds){
+        console.log('children', childrenIds);
+        childrenIds.forEach(function(childId){
+          var peerDataConnection = thisPeer.connect(childId);
+          handleOpenConnection(peerDataConnection, {isChild: true});
+        });
+      });
+    })
+
+    thisPeer.on('server-message', processMessage);
+
+    // A peer connects
+    thisPeer.on('connection', function(peerDataConnection) {
+      handlePeerConnection(peerDataConnection, { isChild:false });
+    })
+
+    thisPeer.on('disconnected', function() {
+      console.log('this peer disconnected');
+    });
+
+    thisPeer.on('close', function() {
+      console.log('this peer closed');
+    });
+
+    thisPeer.on('error', function(err) {
+      console.warn('this peer error',err);
+    });
   }
 
-  function handleOpenConnection(dataConnection, options){
-    dataConnection.on('open', function() {
+  function handlePeerConnection(peerDataConnection, options){
+    // A peer connects
+    peerDataConnection.on('open', function() {
       var parentsOrChildren = options.isChild ? children : parents;
-      parentsOrChildren.push({ id: dataConnection.peer, dataConnection: dataConnection, status:'connected' });
-
-      if(context.data.parents.length >= context.data.expectedNumParents){
-        discon();
+      parentsOrChildren.push({ id: peerDataConnection.peer, peerDataConnection:peerDataConnection, status:'connected' });
+      // Auto-disconnect when this peer has enough parents.
+      if(parents.length >= expectedNumParents){
+        thisPeer.disconnect();
       }
     });
 
-    dataConnection.on('data', processMessage);
+    // A peer sends data
+    peerDataConnection.on('data', processMessage);
 
-    dataConnection.on('close', function() {
-      // console.log('dataConnection close', dataConnection.peer, dataConnection.open);
-      findPeerByID(dataConnection.peer).status = 'closed';
-
-      var allParentsAreClosed = context.data.parents.reduce(function(areAllClosed, parent){
-        return areAllClosed && parent.status === 'closed' ? true : false;
-      }, true);
-
-      if(allParentsAreClosed) {
-        console.log('I\'ve become an orphan. Reconnecting...');
-        context.data.peer.reconnect();
-      }
-
-      $rootScope.$digest(); // ugly hack because of service's async non-ng .on() listeners
+    // A peer closes connection to this peer
+    peerDataConnection.on('close', function(){ 
+      whenAPeerClosesConnection(peerDataConnection.peer, parents, thisPeer); 
     });
 
-    dataConnection.on('error', function(err) {
-      // console.log(dataConnection.peer, dataConnection.open, 'dataConnection error', err);
+    peerDataConnection.on('error', function(err) {
+      console.log(peerDataConnection.peer, peerDataConnection.open, 'peerDataConnection error', err);
     });
   }
 
   return Grapevine;;
-
 })();
 
-function makeId() {
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+function createUniqueId(options) {
+  var text = '';
+  var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for( var i=0; i < options.length || 12; i++ ){
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
 
-    for( var i=0; i < 19; i++ )
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
+function whenAPeerClosesConnection(peerId, thisPeer, parents, children) {
+  findPeerByID(peerId, parents, children).status = 'closed';
+  var allParentsAreClosed = parents.reduce(function(areAllClosed, parent){ return areAllClosed && parent.status === 'closed' ? true : false; }, true);
+  if(allParentsAreClosed) {
+    console.log('I`ve become an orphan. Reconnecting...');
+    thisPeer.reconnect();
+  }
+}
 
-    return text;
+function findPeerByID(id, parents, children){
+  var parentsIndex = parents.map(function(peer){ return peer.id; }).indexOf(id);
+  var childrenIndex = children.map(function(peer){ return peer.id; }).indexOf(id);
+  return ~parentsIndex ? parents[parentsIndex] : children[childrenIndex];
+  }
+}
+
+function processMessage(message) {
+  // TODO interact with user-supplied callback
+  if(!alreadyReceived(message) && verifiedFromServer(message)) {
+    messages.push(message);
+    sendToAllConnections(message);
+  }
+
+  function alreadyReceived(message){
+    var messageIndex = self.data.messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
+    return ~messageIndex ? true: false;
+  }
+  function verifiedFromServer(message, serverPublicKey){
+    // TODO add message verification/decryption
+    return true;
+  }
+}
+
+function sendToAllConnections(message){
+  var temp = message.sender; // TODO -_-
+  message.sender = id
+  children.forEach(function(child){
+    sendToConnection(child.id, message);
+  });
+  message.sender = temp;
+}
+
+function sendToConnection(peerId, data){
+  findPeerByID(peerId).dataConnection.send(data);
 }
