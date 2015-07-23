@@ -18,10 +18,16 @@ app.get('/sendMessage', function(req, res){
 ```html
 <script src="grapevine-client.js"></script>
 <script>
-  Grapevine.connect('//myServerUrl.com/peer-endpoint');
-  Grapevine.onMessage(function(message){
+  var GV = new Grapevine();
+  var options = {
+    host: 'localhost',
+    port: 3000,
+    peerEndpoint: '/webrtc',
+    childrenEndpoint: '/children'
+  };
+  GV.connect(options);
+  GV.onMessage(function(message){
     console.log('received message through Grapevine', message);
   });
-  Grapevine.messagePeers({hello:'world'});
 </script>
 ```

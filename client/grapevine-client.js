@@ -8,16 +8,40 @@ var Grapevine = (function () {
   var expectedNumParents = 3;
 
   function Grapevine(options) {
-    id = createUniqueId({ length:19 });
+    var self = this;
+    id = self.id = createUniqueId({ length:19 });
+    self.messages = messages;
+    self.children = children;
+    self.parents = parents;
+    self.onMessage = function (message) { console.log('received: ', message); }
+
+    function createUniqueId(options) {
+      var text = '';
+      var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      for( var i=0; i < ((options && options.length) || 12); i++ ){
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+      }
+      return text;
+    }
   }
 
+  // options = {
+  //   host: 'localhost',
+  //   port: 3000,
+  //   peerEndpoint: '/webrtc'
+  //   childrenEndpoint: '/children'
+  // }
   Grapevine.prototype.connect = function(options) {
-    var thisPeer = new Peer(id, options);
-    var url = 'http://' + options.host + ':' + options.port;
+    var self = this;
+    var thisPeer = new Peer(self.id, {
+      host: options.host,
+      port: options.port,
+      path: options.peerEndpoint
+    });
 
-    // The server connects
     thisPeer.on('open', function(id) {
-      makeRequest(url + '/children', function(childIds) {
+      var fullChildrenEndpoint = 'http://' + options.host + ':' + options.port + options.childrenEndpoint;
+      makeRequest(fullChildrenEndpoint, function(childIds) {
         childIds.forEach(function(childId) {
           var peerDataConnection = thisPeer.connect(childId);
           handlePeerConnection(thisPeer, peerDataConnection, { isChild: true });
@@ -42,6 +66,24 @@ var Grapevine = (function () {
     thisPeer.on('error', function(err) {
       console.warn('this peer error',err);
     });
+
+    function processMessage(message) {
+      // TODO interact with user-supplied callback
+      if(!alreadyReceived(message) && verifiedFromServer(message)) {
+        messages.push(message);
+        self.onMessage(message);
+        sendToAllConnections(message);
+      }
+
+      function alreadyReceived(message){
+        var messageIndex = messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
+        return ~messageIndex ? true: false;
+      }
+      function verifiedFromServer(message, serverPublicKey){
+        // TODO add message verification/decryption
+        return true;
+      }
+    }
   }
 
   function handlePeerConnection(thisPeer, peerDataConnection, options) {
@@ -70,16 +112,6 @@ var Grapevine = (function () {
     });
   }
 
-  function createUniqueId(options) {
-    var text = '';
-    var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for( var i=0; i < ((options && options.length) || 12); i++ ){
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-  }
-
-
   function whenAPeerClosesConnection(peerId, thisPeer, parents, children) {
     findPeerByID(peerId, parents, children).status = 'closed';
     var allParentsAreClosed = parents.reduce(function(areAllClosed, parent) { return areAllClosed && parent.status === 'closed' ? true : false; }, true);
@@ -102,24 +134,6 @@ var Grapevine = (function () {
     }
 
     return ~parentsIndex ? parents[parentsIndex] : children[childrenIndex];
-  }
-
-  function processMessage(message) {
-    // TODO interact with user-supplied callback
-    if(!alreadyReceived(message) && verifiedFromServer(message)) {
-      messages.push(message);
-      console.log('received', message);
-      sendToAllConnections(message);
-    }
-
-    function alreadyReceived(message){
-      var messageIndex = messages.map(function(message){ return message.timestamp; }).indexOf(message.timestamp);
-      return ~messageIndex ? true: false;
-    }
-    function verifiedFromServer(message, serverPublicKey){
-      // TODO add message verification/decryption
-      return true;
-    }
   }
 
   function sendToAllConnections(message){
@@ -159,6 +173,5 @@ var Grapevine = (function () {
       }
     }
   }
-
   return Grapevine;
 })();

@@ -13,5 +13,11 @@
 //   return context.data;
 // }]);
 var f = new Grapevine();
-f.connect({host: 'localhost', port: 3000, path: '/webrtc'});
+var options = {
+  host: 'localhost',
+  port: 3000,
+  peerEndpoint: '/webrtc',
+  childrenEndpoint: '/children'
+};
+f.connect(options);
 console.log(f);
