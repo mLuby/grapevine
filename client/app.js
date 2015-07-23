@@ -59,14 +59,14 @@ app.service('Grapevine', ['$http', '$rootScope', function Grapevine($http, $root
     console.log('peer', id,'open');
     // get and connect to children
     $http.get('http://localhost:3000/children').success(function(childrenIds){
-      // console.log('children', childrenIds);
+      console.log('children', childrenIds);
       childrenIds.forEach(function(childId){
         var dataConnection = context.data.peer.connect(childId);
         handleOpenConnection(dataConnection, {isChild: true});
       });
     });
     // get server publicRSAKey to verify server messages
-    $http.get('http://localhost:3000/publicKey').success(function(publicKeyObj){      
+    $http.get('http://localhost:3000/publicKey').success(function(publicKeyObj){
       context.data.publicRSAKey = KEYUTIL.getKey(publicKeyObj);
       console.log('retrieved publicRSAKey', context.data.publicRSAKey);
     });

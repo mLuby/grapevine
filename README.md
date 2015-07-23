@@ -6,7 +6,9 @@
 var express = require('express');
 var Grapevine = require('grapevine-server');
 var app = express();
-app.use(Grapevine.setup('/peer-endpoint'));
+var server = app.listen(3000);
+
+app.use('/peer-endpoint', Grapevine.setup(server, {}));
 app.get('/sendMessage', function(req, res){
   Grapevine.messagePeers('hello world');
   return res.sendStatus(200);
@@ -20,6 +22,6 @@ app.get('/sendMessage', function(req, res){
   Grapevine.onMessage(function(message){
     console.log('received message through Grapevine', message);
   });
-  Grapevine.messagePeers({hello:'world'});    
+  Grapevine.messagePeers({hello:'world'});
 </script>
 ```
