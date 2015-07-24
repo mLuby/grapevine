@@ -1,13 +1,16 @@
 #Grapevine
 
-##Example
+##Install
+`npm install --save grapevine-server`
+
+##Example Use
 **server.js**
 ```node
 var express = require('express');
 var app = express();
 var server = app.listen(3000);
 
-var Grapevine = require('./grapevine-server');
+var Grapevine = require('grapevine-server');
 Grapevine.setup('/webrtc', app, server);
 
 app.get('/sendMessage', function(req, res){
