@@ -20,7 +20,7 @@ app.get('/sendMessage', function(req, res){
 ```
 **index.html**
 ```html
-<script src="grapevine-client.js"></script>
+<script src="https://cdn.rawgit.com/mLuby/grapevine/master/client/grapevine-client.js"></script>
 <script>
   Grapevine.connectToServer({ host:'localhost', port:3000, path:'/webrtc' });
   Grapevine.onMessage = function(message){
