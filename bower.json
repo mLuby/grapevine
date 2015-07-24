@@ -1,0 +1,32 @@
+{
+  name: 'grapevine',
+  version: '1.0.0',
+  homepage: 'https://github.com/mLuby/grapevine',
+  authors: [
+    'Kevin Chen <"kevinchen2016@u.northwestern.edu">'
+    'Mike Luby',
+    'Cody Lieu'
+  ],
+  description: 'browser-to-browser messaging',
+  main: [
+   'client/grapevine-client.js'
+  ],
+  moduleType: [
+    'globals'
+  ],
+  keywords: [
+    'p2p',
+    'webrtc',
+    'peerjs',
+    'socket'
+  ],
+  license: 'MIT',
+  ignore: [
+    '**/.*',
+    '*.js',
+    'node_modules',
+    'bower_components',
+    'test',
+    'tests'
+  ]
+}
