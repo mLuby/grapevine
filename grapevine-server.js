@@ -2,7 +2,10 @@
   'use strict';
 
   var ExpressPeerServer = require('peer').ExpressPeerServer;
-  var GrapevineServer, currentLayer = [], previousLayer = [], maxPeersPerLayer = 3;
+  var GrapevineServer;
+  var currentLayer = [];
+  var previousLayer = [];
+  var maxPeersPerLayer = 3;
   // generate RSA keys for signing and verifing messages from server
   var jsrsasign = require('jsrsasign');
   var _RSAkeys = jsrsasign.KEYUTIL.generateKeypair("RSA", 1024);
@@ -16,14 +19,23 @@
     publicRSAKey: {publicRSAKey:publicRSAKey, nRadix:publicRSAKey.n.toRadix()}
   };
 
-  function setup(app, server, options) {
+  function setup(path, app, server) {
     var Grapevine = this;
-    GrapevineServer = ExpressPeerServer(server, options);
+    GrapevineServer = ExpressPeerServer(server);
 
-    app.use(options.peerEndpoint, GrapevineServer);
-    app.get(options.childrenEndpoint, function(req, res){ return res.send(Grapevine.getChildren()); });
-    app.get(options.publicKeyEndpoint, function(req, res){ return res.send(Grapevine.publicRSAKey); });
+    // Routing
+    app.use(path, function(req, res, next){
+      if(req.path === '/children'){
+        return res.send(Grapevine.getChildren());
+      } else if (req.path === '/publicRSAKey'){
+        return res.send(Grapevine.publicRSAKey);
+      } else {
+        return next();
+      }
+    });
+    app.use(path, GrapevineServer);
 
+    // Eventing
     GrapevineServer.on('connection', function (id) {
       // The 'connection' event is emitted when a peer connects to the server.
       // if current layer has filled up
@@ -32,7 +44,6 @@
         currentLayer = [];
       }
       currentLayer.push(id);
-
     });
 
     GrapevineServer.on('disconnect', function (id) {
@@ -42,6 +53,7 @@
     });
   }
 
+  // Messaging
   function messageAll(message) {
     // TODO: JSONify message here
     if (GrapevineServer._clients.peerjs) {

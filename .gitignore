@@ -1,8 +1,3 @@
 .gitignore
 node_modules/
-fakedUI.js
-grapevine.txt
-p2p-pub-sub.md
-Mesh_network_self_healing.gif
-.tags*
 misc/

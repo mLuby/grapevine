@@ -4,13 +4,14 @@
 **server.js**
 ```node
 var express = require('express');
-var Grapevine = require('grapevine-server');
 var app = express();
 var server = app.listen(3000);
 
-app.use('/peer-endpoint', Grapevine.setup(server, {}));
+var Grapevine = require('./grapevine-server');
+Grapevine.setup('/webrtc', app, server);
+
 app.get('/sendMessage', function(req, res){
-  Grapevine.messagePeers('hello world');
+  Grapevine.messageAll('hello world');
   return res.sendStatus(200);
 });
 ```
@@ -18,16 +19,9 @@ app.get('/sendMessage', function(req, res){
 ```html
 <script src="grapevine-client.js"></script>
 <script>
-  var GV = new Grapevine();
-  var options = {
-    host: 'localhost',
-    port: 3000,
-    peerEndpoint: '/webrtc',
-    childrenEndpoint: '/children'
+  Grapevine.connectToServer({ host:'localhost', port:3000, path:'/webrtc' });
+  Grapevine.onMessage = function(message){
+    document.getElementById('title').innerHTML = 'I heard '+JSON.stringify(message)+' through the Grapevine';
   };
-  GV.connect(options);
-  GV.onMessage(function(message){
-    console.log('received message through Grapevine', message);
-  });
 </script>
 ```

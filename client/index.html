@@ -1,22 +1,15 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="grapevine-peer.js"></script>
-    <script src="jsrsasign.js"></script>
     <script src="grapevine-client.js"></script>
     <script>
-      Grapevine.connectToServer({ host: 'localhost', port: 3000, 
-        peerEndpoint: '/webrtc', 
-        childrenEndpoint: '/children', 
-        publicKeyEndpoint: '/publickey' 
-      });
+      Grapevine.connectToServer({ host:'localhost', port:3000, path:'/webrtc' });
       Grapevine.onMessage = function(message){
-        console.log('I heard', message, 'through the Grapevine');
-        document.getElementById('title').innerHTML = '$'+message.total;
+        document.getElementById('title').innerHTML = 'I heard '+JSON.stringify(message)+' through the Grapevine';
       };
     </script>
   </head>
   <body>
-    <h1 id="title">hello world</h1>
+    <h1 id="title">messageAll from the server to see this change</h1>
   </body>
 </html>

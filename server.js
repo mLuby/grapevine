@@ -1,6 +1,7 @@
 // INITIALIZATION
 var express = require('express');
 var bodyParser = require('body-parser');
+var Grapevine = require('./grapevine-server');
 
 var app = express();
 var port = process.env.PORT || 3000;
@@ -11,12 +12,7 @@ var server = app.listen(port, function () {
 app.use(bodyParser.json());
 // curl -H "Content-Type: application/json" -X POST -d '{"total":100}' http://localhost:3000/message
 
-var Grapevine = require('./grapevine-server');
-Grapevine.setup(app, server, {
-  peerEndpoint: '/webrtc',
-  childrenEndpoint: '/children',
-  publicKeyEndpoint: '/publickey'
-});
+Grapevine.setup('/webrtc', app, server);
 
 // ENDPOINTS
 app.use('/', express.static('client'));
