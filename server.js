@@ -1,5 +1,4 @@
 // INITIALIZATION
-var Grapevine = require('./grapevine-server');
 var express = require('express');
 var bodyParser = require('body-parser');
 
@@ -12,28 +11,24 @@ var server = app.listen(port, function () {
 app.use(bodyParser.json());
 // curl -H "Content-Type: application/json" -X POST -d '{"total":100}' http://localhost:3000/message
 
+var Grapevine = require('./grapevine-server');
+Grapevine.setup(app, server, {
+  peerEndpoint: '/webrtc',
+  childrenEndpoint: '/children',
+  publicKeyEndpoint: '/publickey'
+});
+
 // ENDPOINTS
 app.use('/', express.static('client'));
-app.use('/webrtc', Grapevine.setup(server, {}));
-
-app.get('/children', function (req, res) {
-  return res.send(Grapevine.getChildren());
-});
-
-app.get('/publickey', function (req, res) {
-  return res.send({publicRSAKey:Grapevine.publicRSAKey, nRadix:Grapevine.publicRSAKey.n.toRadix()});
-});
 
 var total = 0;
 app.post('/message', function(req, res) {
-  var message = {
-    data: {}
-  };
+  var message = {};
   if (req.body.total) {
     total += req.body.total;
-    message.data.total = total;
+    message.total = total;
   }
-  console.log('received',req.body,'sending through the Grapevine as',message);
+  console.log('Message received:',req.body+'; Sending through the Grapevine as',message);
   Grapevine.messageAll(message);
   return res.sendStatus(200);
 });

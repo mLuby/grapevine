@@ -5,13 +5,18 @@
     <script src="jsrsasign.js"></script>
     <script src="grapevine-client.js"></script>
     <script>
-      Grapevine.connectToServer({ host: 'localhost', port: 3000, peerEndpoint: '/webrtc', childrenEndpoint: '/children', publicKeyEndpoint: '/publickey' });
-      Grapevine.onMessage = function(messsage){
-        console.log('I heard', messsage, 'through the Grapevine');
+      Grapevine.connectToServer({ host: 'localhost', port: 3000, 
+        peerEndpoint: '/webrtc', 
+        childrenEndpoint: '/children', 
+        publicKeyEndpoint: '/publickey' 
+      });
+      Grapevine.onMessage = function(message){
+        console.log('I heard', message, 'through the Grapevine');
+        document.getElementById('title').innerHTML = '$'+message.total;
       };
     </script>
   </head>
   <body>
-    <h1>hello world</h1>
+    <h1 id="title">hello world</h1>
   </body>
 </html>
