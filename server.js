@@ -1,10 +1,7 @@
-// TODO ability to send message from server to currentLayer Peers
-
 // INITIALIZATION
-var Grapevine = require('./grapevine-server');
 var express = require('express');
 var bodyParser = require('body-parser');
-var jsrsasign = require('jsrsasign');
+var Grapevine = require('./grapevine-server');
 
 var app = express();
 var port = process.env.PORT || 3000;
@@ -15,25 +12,19 @@ var server = app.listen(port, function () {
 app.use(bodyParser.json());
 // curl -H "Content-Type: application/json" -X POST -d '{"total":100}' http://localhost:3000/message
 
+Grapevine.setup('/webrtc', app, server);
+
 // ENDPOINTS
 app.use('/', express.static('client'));
-app.use('/webrtc', Grapevine.setup(server, {}));
-
-app.get('/children', function (req, res) {
-  return res.send(Grapevine.getChildren());
-});
 
 var total = 0;
 app.post('/message', function(req, res) {
-  var message = {
-    data: {},
-    sender: 'SERVER',
-    timestamp: new Date().getTime()
-  };
+  var message = {};
   if (req.body.total) {
     total += req.body.total;
-    message.data.total = total;
+    message.total = total;
   }
+  console.log('Message received:',req.body+'; Sending through the Grapevine as',message);
   Grapevine.messageAll(message);
   return res.sendStatus(200);
 });
