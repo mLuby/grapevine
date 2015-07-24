@@ -33,7 +33,7 @@ app.post('/message', function(req, res) {
     total += req.body.total;
     message.data.total = total;
   }
-  console.log('recieved',req.body,'sending through the Grapevine as',message);
+  console.log('received',req.body,'sending through the Grapevine as',message);
   Grapevine.messageAll(message);
   return res.sendStatus(200);
 });

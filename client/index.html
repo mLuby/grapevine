@@ -1,21 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>App That Uses Grapevine</title>
     <script src="grapevine-peer.js"></script>
     <script src="jsrsasign.js"></script>
     <script src="grapevine-client.js"></script>
     <script>
-      var grapevine = new Grapevine();
-      var options = {
-        host: 'localhost',
-        port: 3000,
-        peerEndpoint: '/webrtc',
-        childrenEndpoint: '/children',
-        publicKeyEndpoint: '/publickey'
+      Grapevine.connectToServer({ host: 'localhost', port: 3000, peerEndpoint: '/webrtc', childrenEndpoint: '/children', publicKeyEndpoint: '/publickey' });
+      Grapevine.onMessage = function(messsage){
+        console.log('I heard', messsage, 'through the Grapevine');
       };
-      grapevine.connect(options);
-      console.log(grapevine);
     </script>
   </head>
   <body>
