@@ -1,13 +1,17 @@
-#Grapevine
+# Grapevine
+Transmit live socket updates through a distributed client P2P network, instead of requiring the server to do all of the heavy lifting. Uses WebRTC and `jsrsasign` encryption.
 
-##Example
+## Install
+`npm install grapevine-server`
+
+## Example Use
 **server.js**
-```node
+```javascript
 var express = require('express');
 var app = express();
 var server = app.listen(3000);
 
-var Grapevine = require('./grapevine-server');
+var Grapevine = require('grapevine-server');
 Grapevine.setup('/webrtc', app, server);
 
 app.get('/sendMessage', function(req, res){
@@ -17,7 +21,7 @@ app.get('/sendMessage', function(req, res){
 ```
 **index.html**
 ```html
-<script src="grapevine-client.js"></script>
+<script src="https://cdn.rawgit.com/mLuby/grapevine/master/client/grapevine-client.js"></script>
 <script>
   Grapevine.connectToServer({ host:'localhost', port:3000, path:'/webrtc' });
   Grapevine.onMessage = function(message){

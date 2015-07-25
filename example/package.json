@@ -1,0 +1,16 @@
+{
+  "name": "grapevine-example",
+  "version": "1.0.0",
+  "description": "example of grapevine messaging",
+  "main": "index.js",
+  "scripts": {
+    "start": "echo 'Open browser to localhost:3000' && node server.js",
+    "postinstall": "./node_modules/.bin/bower install"
+  },
+  "repository": {},
+  "dependencies": {
+    "bower": "^1.4.1",
+    "express": "^4.13.1",
+    "grapevine-server": "^1.0.0"
+  }
+}
