@@ -12,6 +12,7 @@
     "url": "https://github.com/mLuby/grapevine.git"
   },
   "author": "Mike Luby <Michael@mLuby.com> (https://github.com/mLuby)",
+  "contributors": [{"name": "Kevin Chen"}, {"name": "Cody Lieu"}],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/mLuby/grapevine/issues"

@@ -1,14 +1,15 @@
 {
-  "name": "grapevine-test",
+  "name": "grapevine-example",
   "version": "1.0.0",
-  "description": "",
+  "description": "example of grapevine messaging",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "echo 'Open browser to localhost:3000' && node server.js",
+    "postinstall": "./node_modules/.bin/bower install"
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {},
   "dependencies": {
+    "bower": "^1.4.1",
     "express": "^4.13.1",
     "grapevine-server": "^1.0.0"
   }

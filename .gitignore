@@ -1,5 +1,2 @@
 .gitignore
 node_modules/
-misc/
-.tags
-.tags1
