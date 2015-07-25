@@ -1,6 +1,6 @@
 {
   "name": "grapevine-client",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "homepage": "https://github.com/mLuby/grapevine",
   "authors": [
     "Mike Luby <Michael@mLuby.com> (https://github.com/mLuby)",
@@ -15,5 +15,6 @@
     "peerjs",
     "socket"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "ignore": ["*", "!grapevine-client.js"]
 }

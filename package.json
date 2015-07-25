@@ -1,8 +1,9 @@
 {
   "name": "grapevine-server",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "browser-to-browser messaging (server component)",
   "main": "grapevine-server.js",
+  "files": ["grapevine-server.js"],
   "dependencies": {
     "jsrsasign": "^4.8.3",
     "peer": "^0.2.8"
